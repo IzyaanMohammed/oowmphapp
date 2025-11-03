@@ -9,35 +9,48 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useAuth, useUser } from "@/firebase";
 import { MOCK_USERS } from "@/lib/mock-data";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { CreditCard, LogOut, Settings, User } from "lucide-react";
 import Link from "next/link";
-
-const currentUser = MOCK_USERS.find(user => user.role === 'admin')!;
-const userAvatar = PlaceHolderImages.find(img => img.id === currentUser.avatarId);
+import { getAuth, signOut } from "firebase/auth";
 
 export function UserNav() {
+  const { user } = useUser();
+  const auth = useAuth();
+
+  const handleLogout = () => {
+    signOut(auth);
+  };
+  
+  if (!user) {
+    return null;
+  }
+
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('');
   }
+
+  const displayName = user.displayName || user.email || 'User';
+  const displayEmail = user.email || '';
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-9 w-9 rounded-full">
           <Avatar className="h-9 w-9">
-            <AvatarImage src={userAvatar?.imageUrl} alt={currentUser.name} data-ai-hint={userAvatar?.imageHint} />
-            <AvatarFallback>{getInitials(currentUser.name)}</AvatarFallback>
+            {user.photoURL && <AvatarImage src={user.photoURL} alt={displayName} />}
+            <AvatarFallback>{getInitials(displayName)}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{currentUser.name}</p>
+            <p className="text-sm font-medium leading-none">{displayName}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              {currentUser.email}
+              {displayEmail}
             </p>
           </div>
         </DropdownMenuLabel>
@@ -57,11 +70,9 @@ export function UserNav() {
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link href="/login">
+        <DropdownMenuItem onClick={handleLogout}>
             <LogOut className="mr-2 h-4 w-4" />
             <span>Log out</span>
-          </Link>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

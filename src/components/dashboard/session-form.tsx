@@ -29,6 +29,10 @@ import { Calendar } from "../ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Textarea } from "../ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { useFirestore } from "@/firebase";
+import { collection, doc } from "firebase/firestore";
+import { addDocumentNonBlocking, setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { v4 as uuidv4 } from 'uuid';
 
 interface SessionFormProps {
   isOpen: boolean;
@@ -48,6 +52,8 @@ const formSchema = z.object({
 
 export function SessionForm({ isOpen, setIsOpen, session, users }: SessionFormProps) {
   const { toast } = useToast();
+  const firestore = useFirestore();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -61,7 +67,23 @@ export function SessionForm({ isOpen, setIsOpen, session, users }: SessionFormPr
   });
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    console.log(values);
+    const sessionData = {
+      ...values,
+      date: values.date.toISOString(),
+    };
+
+    if (session) {
+      // Update existing session
+      const sessionRef = doc(firestore, 'sessionBookings', session.id);
+      setDocumentNonBlocking(sessionRef, sessionData, { merge: true });
+    } else {
+      // Create new session
+      const newId = uuidv4();
+      const sessionWithId = { ...sessionData, id: newId };
+      const sessionRef = doc(firestore, 'sessionBookings', newId);
+      setDocumentNonBlocking(sessionRef, sessionWithId, {});
+    }
+
     toast({
         title: session ? "Session Updated" : "Session Created",
         description: `The session "${values.programName}" has been saved successfully.`,

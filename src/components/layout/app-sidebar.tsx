@@ -8,15 +8,12 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar";
 import {
-  CalendarDays,
   Home,
   Settings,
-  BookUser,
   LogOut,
 } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/icons";
-import { Button } from "../ui/button";
 
 export function AppSidebar() {
   return (
@@ -40,22 +37,6 @@ export function AppSidebar() {
               <Link href="/dashboard">
                 <Home />
                 <span>Dashboard</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip={{ children: "Bookings" }}>
-              <Link href="/dashboard">
-                <CalendarDays />
-                <span>Bookings</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip={{ children: "Teachers" }}>
-              <Link href="#">
-                <BookUser />
-                <span>Teachers</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

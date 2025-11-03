@@ -3,7 +3,7 @@
 import type { Session, User } from "@/lib/types";
 import { useState } from "react";
 import { Button } from "../ui/button";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, CalendarDays } from "lucide-react";
 import { Calendar } from "../ui/calendar";
 import {
   Card,
@@ -18,6 +18,7 @@ import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { Badge } from "../ui/badge";
 import { SessionForm } from "./session-form";
 import { ScrollArea } from "../ui/scroll-area";
+import { useUser } from "@/firebase";
 
 interface DashboardClientProps {
   sessions: Session[];
@@ -28,6 +29,7 @@ export function DashboardClient({ sessions, users }: DashboardClientProps) {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
+  const { user: currentUser } = useUser();
 
   const getTeacher = (teacherId: string) =>
     users.find((user) => user.id === teacherId);
@@ -48,6 +50,14 @@ export function DashboardClient({ sessions, users }: DashboardClientProps) {
 
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('');
+  }
+
+  const canEdit = (session: Session) => {
+    if (!currentUser) return false;
+    const userRole = users.find(u => u.id === currentUser.uid)?.role;
+    if (userRole === 'admin') return true;
+    if (userRole === 'teacher' && session.teacherId === currentUser.uid) return true;
+    return false;
   }
 
   return (
@@ -123,13 +133,15 @@ export function DashboardClient({ sessions, users }: DashboardClientProps) {
                           </div>
                           <div className="flex items-center gap-4">
                             <Badge variant="outline">{`${session.startTime} - ${session.endTime}`}</Badge>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEdit(session)}
-                            >
-                              Edit
-                            </Button>
+                            {canEdit(session) && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEdit(session)}
+                              >
+                                Edit
+                              </Button>
+                            )}
                           </div>
                         </div>
                       );
