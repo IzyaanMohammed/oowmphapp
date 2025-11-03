@@ -15,13 +15,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/icons";
 import { useAuth, useUser } from "@/firebase";
-import { initiateEmailSignIn } from "@/firebase/non-blocking-login";
+import { initiateEmailSignIn, initiateEmailSignUp } from "@/firebase/non-blocking-login";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect } from "react";
+import { onAuthStateChanged } from "firebase/auth";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("izyaan.k_oow@gemsed.com");
+  const [password, setPassword] = useState("123456");
   const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
@@ -30,17 +31,39 @@ export default function LoginPage() {
   const handleSignIn = (e: React.FormEvent) => {
     e.preventDefault();
     initiateEmailSignIn(auth, email, password);
-    toast({
-      title: "Signing In...",
-      description: "Please wait while we verify your credentials.",
-    });
   };
+  
+  const handleCreateAccount = (e: React.FormEvent) => {
+    e.preventDefault();
+    initiateEmailSignUp(auth, email, password);
+  }
 
   useEffect(() => {
-    if (!isUserLoading && user) {
-      router.push('/dashboard');
-    }
-  }, [user, isUserLoading, router]);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        toast({
+          title: "Sign In Successful",
+          description: "Redirecting to your dashboard.",
+        });
+        router.push('/dashboard');
+      }
+    }, (error) => {
+      toast({
+        variant: "destructive",
+        title: "Authentication Error",
+        description: error.message,
+      });
+    });
+    return () => unsubscribe();
+  }, [auth, router, toast]);
+
+  if (isUserLoading || user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div>Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
@@ -51,7 +74,7 @@ export default function LoginPage() {
           <CardDescription>Enter your credentials to access your account</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSignIn}>
+          <form>
             <div className="grid w-full items-center gap-4">
               <div className="flex flex-col space-y-1.5">
                 <Label htmlFor="email">Email</Label>
@@ -74,9 +97,16 @@ export default function LoginPage() {
                 />
               </div>
             </div>
-            <Button className="w-full mt-4" type="submit" disabled={isUserLoading}>
-              {isUserLoading ? 'Signing In...' : 'Sign In'}
-            </Button>
+            <div className="flex flex-col gap-2 mt-4">
+              <Button className="w-full" type="submit" onClick={handleSignIn}>
+                Sign In
+              </Button>
+              {process.env.NODE_ENV === 'development' && (
+                 <Button variant="outline" className="w-full" type="button" onClick={handleCreateAccount}>
+                    Create Account (Dev only)
+                 </Button>
+              )}
+            </div>
           </form>
         </CardContent>
       </Card>

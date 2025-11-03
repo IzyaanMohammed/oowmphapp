@@ -1,20 +1,24 @@
 'use client';
 import { DashboardClient } from "@/components/dashboard/dashboard-client";
-import { useCollection, useFirestore } from "@/firebase";
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import type { Session, User } from "@/lib/types";
 import { collection, query } from "firebase/firestore";
 
 export default function DashboardPage() {
   const firestore = useFirestore();
 
-  const usersQuery = query(collection(firestore, 'users'));
+  const usersQuery = useMemoFirebase(() => query(collection(firestore, 'users')), [firestore]);
   const { data: users, isLoading: usersLoading } = useCollection<User>(usersQuery);
 
-  const sessionsQuery = query(collection(firestore, 'sessionBookings'));
+  const sessionsQuery = useMemoFirebase(() => query(collection(firestore, 'sessionBookings')), [firestore]);
   const { data: sessions, isLoading: sessionsLoading } = useCollection<Session>(sessionsQuery);
 
   if (usersLoading || sessionsLoading) {
-    return <div>Loading...</div>
+    return (
+       <div className="flex items-center justify-center h-full">
+        <div className="text-lg font-semibold">Loading Dashboard...</div>
+      </div>
+    );
   }
 
   const sessionsWithDateObjects = sessions?.map(s => ({...s, date: new Date(s.date)})) || [];
