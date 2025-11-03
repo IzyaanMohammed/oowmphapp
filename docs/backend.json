@@ -1,0 +1,111 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the MPH Booking Central application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user.",
+          "format": "uuid"
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "format": "email"
+        },
+        "role": {
+          "type": "string",
+          "description": "Role of the user (e.g., teacher, unverified, admin).",
+          "format": "string"
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "role"
+      ]
+    },
+    "SessionBooking": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SessionBooking",
+      "type": "object",
+      "description": "Represents a session booking in the MPH Booking Central application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the session booking.",
+          "format": "uuid"
+        },
+        "teacherId": {
+          "type": "string",
+          "description": "Reference to the teacher associated with this session. (Relationship: User 1:N SessionBooking)"
+        },
+        "programName": {
+          "type": "string",
+          "description": "Name of the program for this session."
+        },
+        "date": {
+          "type": "string",
+          "description": "Date of the session.",
+          "format": "date-time"
+        },
+        "details": {
+          "type": "string",
+          "description": "Additional details or notes about the session."
+        }
+      },
+      "required": [
+        "id",
+        "teacherId",
+        "programName",
+        "date"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user information. Only the authenticated user (or admin, based on separate rules) can read/write their own document. This collection is used for authentication context. Should not be used for booking authorization. Roles are managed out of band.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/sessionBookings/{bookingId}",
+        "definition": {
+          "entityName": "SessionBooking",
+          "schema": {
+            "$ref": "#/backend/entities/SessionBooking"
+          },
+          "description": "Stores session booking information. Includes denormalized 'teacherId' for authorization independence. Teachers can only modify their own bookings.",
+          "params": [
+            {
+              "name": "bookingId",
+              "description": "The unique identifier of the session booking."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "This Firestore data structure is designed to support the MPH Booking Central application, focusing on secure access and efficient management of session bookings and user information. The structure emphasizes role-based access control (teacher, unverified, admin) and ensures that only authenticated users can access the data. Authentication Independence is achieved by storing the `teacherId` within the `SessionBooking` document. This enables rules to validate access without needing to read the User document.\n\n**Authorization Independence:** The `teacherId` field in the `sessionBookings` collection denormalizes the user-session relationship, so rules can validate access based on the ID in the `request.auth.uid` without requiring a `get()` call to the `/users/{userId}` collection.\n\n**Segregation:** All bookings are stored in a single collection (`sessionBookings`), enforcing a uniform security posture. Teachers can only modify bookings where their `id` matches the `teacherId` in the `sessionBookings` document. This aligns with the business rules, where admins would have broader access based on a separate rule (not defined here, as signup is disabled).\n\n**Access Modeling:** The `sessionBookings` collection uses the `teacherId` to establish an owner-like relationship, meaning that a teacher can only edit session bookings related to them. There are no global roles (DBAC), as admin roles would be managed out of band.\n\n**QAPs Support:** Using a single collection (`sessionBookings`) simplifies listing operations. A teacher can list all bookings where the `teacherId` matches their `uid` to display their sessions. The denormalization also ensures that listing operations can be secured without additional `get()` calls."
+  }
+}
