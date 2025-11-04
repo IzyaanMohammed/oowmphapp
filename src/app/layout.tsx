@@ -3,6 +3,10 @@ import './globals.css';
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/toaster"
 import { FirebaseClientProvider } from '@/firebase';
+import { AppSidebar } from "@/components/layout/app-sidebar";
+import { AppHeader } from "@/components/layout/app-header";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+
 
 export const metadata: Metadata = {
   title: 'MPH Booking Central',
@@ -14,6 +18,12 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const isLoginPage = React.Children.toArray(children).some((child: any) => {
+    // A bit of a hack, but there's no great way to detect the route from a layout in Next 13+ App router
+    // This will break if the login page component name changes or is wrapped
+    return child.type.name === 'LoginPage' || child.props.childProp?.segment === 'login';
+  });
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -24,7 +34,21 @@ export default function RootLayout({
       </head>
       <body className={cn("font-body antialiased", "min-h-screen bg-background font-sans")}>
         <FirebaseClientProvider>
-          {children}
+           {isLoginPage ? (
+              children
+            ) : (
+            <SidebarProvider>
+              <AppSidebar />
+              <SidebarInset>
+                <div className="flex h-screen flex-col">
+                  <AppHeader />
+                  <main className="flex-1 overflow-y-auto p-4 pt-6 sm:p-6 lg:p-8">
+                    {children}
+                  </main>
+                </div>
+              </SidebarInset>
+            </SidebarProvider>
+          )}
         </FirebaseClientProvider>
         <Toaster />
       </body>
