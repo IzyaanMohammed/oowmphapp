@@ -12,11 +12,11 @@ export default function DashboardPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [usersLoading, setUsersLoading] = useState(true);
 
-  // Fetch all sessions initially
+  // Fetch all sessions initially, only when authenticated
   const sessionsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || authUserLoading || !authUser) return null;
     return query(collection(firestore, 'sessionBookings'));
-  }, [firestore]);
+  }, [firestore, authUser, authUserLoading]);
   const { data: sessions, isLoading: sessionsLoading } = useCollection<Session>(sessionsQuery);
 
   // When sessions are loaded, get the unique teacher IDs
@@ -26,55 +26,24 @@ export default function DashboardPage() {
   }, [sessions]);
 
   // Fetch users based on the teacher IDs from the sessions
-  useEffect(() => {
-    if (!firestore || teacherIds.length === 0) {
-      if (teacherIds.length === 0) {
-        setUsers([]);
-        setUsersLoading(false);
-      }
-      return;
-    }
-    
-    setUsersLoading(true);
-
-    const usersRef = collection(firestore, 'users');
-    // Firestore 'in' query is limited to 30 items. If more, we'd need multiple queries.
-    const usersQuery = query(usersRef, where('id', 'in', teacherIds.slice(0, 30)));
-
-    const { data: fetchedUsers, isLoading: fetchedUsersLoading } = useCollection<User>(usersQuery);
-    
-    const unsubscribe = useCollection<User>(usersQuery).data;
-    
-    // Using a snapshot listener to get user data
-    const { data, isLoading: loading, error } = useCollection<User>(usersQuery);
-
-    if(!loading && data) {
-        setUsers(data);
-        setUsersLoading(false);
-    }
-    if (error) {
-      console.error("Error fetching users:", error);
-      setUsersLoading(false);
-    }
-
+  const usersQuery = useMemoFirebase(() => {
+    if (!firestore || teacherIds.length === 0) return null;
+    // Firestore 'in' query is limited to 30 items. 
+    // For this app, we'll take the first 30. For a larger scale app, pagination would be needed.
+    return query(collection(firestore, "users"), where("id", "in", teacherIds.slice(0, 30)));
   }, [firestore, teacherIds]);
 
-  const { data, isLoading: loading, error } = useCollection<User>(
-    useMemoFirebase(() => {
-      if (!firestore || teacherIds.length === 0) return null;
-      return query(collection(firestore, "users"), where("id", "in", teacherIds.slice(0, 30)));
-    }, [firestore, teacherIds])
-  );
+  const { data: fetchedUsers, isLoading: fetchedUsersLoading } = useCollection<User>(usersQuery);
 
   useEffect(() => {
-    if (!loading && data) {
-      setUsers(data);
+    if (!fetchedUsersLoading) {
+      setUsers(fetchedUsers || []);
       setUsersLoading(false);
     }
-  }, [data, loading]);
+  }, [fetchedUsers, fetchedUsersLoading]);
 
 
-  if (authUserLoading || sessionsLoading || usersLoading) {
+  if (authUserLoading || (sessionsLoading && sessions === null) || (usersLoading && sessions !== null)) {
     return (
        <div className="flex items-center justify-center h-full">
         <div className="text-lg font-semibold">Loading Dashboard...</div>
