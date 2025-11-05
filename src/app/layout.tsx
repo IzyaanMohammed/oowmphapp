@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/toaster"
 import { FirebaseClientProvider } from '@/firebase';
 import { AppSidebar } from "@/components/layout/app-sidebar";
-import { AppHeader } from "@/components/layout/app-header";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 
 
@@ -42,8 +41,7 @@ export default function RootLayout({
               <AppSidebar />
               <SidebarInset>
                 <div className="flex h-screen flex-col">
-                  <AppHeader />
-                  <main className="flex-1 overflow-y-auto p-4 pt-6 sm:p-6 lg:p-8">
+                  <main className="flex-1 overflow-y-auto">
                     {children}
                   </main>
                 </div>

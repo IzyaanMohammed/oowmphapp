@@ -1,10 +1,9 @@
 'use client';
 import { DashboardClient } from "@/components/dashboard/dashboard-client";
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
-import type { Session, User } from "@/lib/types";
-import { collection, query, where, Timestamp } from "firebase/firestore";
+import type { Session } from "@/lib/types";
+import { collection, query, Timestamp } from "firebase/firestore";
 import { useUser as useAuthUser } from "@/firebase";
-import { useEffect, useState } from "react";
 
 export default function DashboardPage() {
   const firestore = useFirestore();
@@ -17,7 +16,7 @@ export default function DashboardPage() {
 
   const { data: sessions, isLoading: sessionsLoading } = useCollection<Session>(sessionsQuery);
 
-  if (authUserLoading || (sessionsLoading && sessions === null)) {
+  if (authUserLoading || (sessionsLoading && !sessions)) {
     return (
        <div className="flex items-center justify-center h-full">
         <div className="text-lg font-semibold">Loading Dashboard...</div>
@@ -33,12 +32,6 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight font-headline">Session Dashboard</h2>
-        <p className="text-muted-foreground">
-          Manage and view all your session bookings in one place.
-        </p>
-      </div>
       <DashboardClient sessions={sessionsWithDateObjects} />
     </div>
   );

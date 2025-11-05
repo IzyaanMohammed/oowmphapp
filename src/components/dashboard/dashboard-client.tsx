@@ -3,7 +3,7 @@
 import type { Session } from "@/lib/types";
 import { useState } from "react";
 import { Button } from "../ui/button";
-import { PlusCircle, CalendarDays, Download } from "lucide-react";
+import { PlusCircle, CalendarDays, Download, Search } from "lucide-react";
 import { Calendar } from "../ui/calendar";
 import {
   Card,
@@ -13,12 +13,13 @@ import {
   CardTitle,
 } from "../ui/card";
 import { isSameDay, format, isSameMonth } from "date-fns";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
+import { Avatar, AvatarFallback } from "../ui/avatar";
 import { Badge } from "../ui/badge";
 import { SessionForm } from "./session-form";
 import { ScrollArea } from "../ui/scroll-area";
-import { useUser } from "@/firebase";
+import { SessionDetailsDialog } from "./session-details";
+import { Input } from "../ui/input";
+import { AppHeader } from "../layout/app-header";
 
 interface DashboardClientProps {
   sessions: Session[];
@@ -28,12 +29,23 @@ export function DashboardClient({ sessions }: DashboardClientProps) {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
-  const { user: currentUser } = useUser();
+  const [viewedSession, setViewedSession] = useState<Session | null>(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredSessions = sessions.filter((session) =>
+  const filteredSessionsByDate = sessions.filter((session) =>
     date ? isSameDay(session.date, date) : true
   );
 
+  const filteredSessions = filteredSessionsByDate.filter((session) => {
+    const query = searchQuery.toLowerCase();
+    return (
+      session.programName.toLowerCase().includes(query) ||
+      session.teacherName.toLowerCase().includes(query) ||
+      (session.notes && session.notes.toLowerCase().includes(query))
+    );
+  });
+  
   const handleEdit = (session: Session) => {
     setSelectedSession(session);
     setIsFormOpen(true);
@@ -44,18 +56,24 @@ export function DashboardClient({ sessions }: DashboardClientProps) {
     setIsFormOpen(true);
   }
 
+  const handleViewDetails = (session: Session) => {
+    setViewedSession(session);
+    setIsDetailsOpen(true);
+  };
+
   const handleDownloadReport = () => {
-    // In a real app, you'd generate a PDF here.
-    // For this prototype, we'll download a JSON representation of the data.
     const monthSessions = sessions.filter(session => date ? isSameMonth(session.date, date) : false);
-    const dataStr = "data:text/json;charset=utf-t," + encodeURIComponent(JSON.stringify(monthSessions, null, 2));
+    if (monthSessions.length === 0) {
+      console.log("No sessions to report for the selected month.");
+      return;
+    }
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(monthSessions, null, 2));
     const downloadAnchorNode = document.createElement('a');
     downloadAnchorNode.setAttribute("href",     dataStr);
     downloadAnchorNode.setAttribute("download", `session_report_${date ? format(date, 'yyyy-MM') : 'all'}.json`);
-    document.body.appendChild(downloadAnchorNode); // required for firefox
+    document.body.appendChild(downloadAnchorNode);
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
-    console.log("Downloading report for:", date ? format(date, "MMMM yyyy") : "All time");
   };
 
   const getInitials = (name: string) => {
@@ -64,7 +82,8 @@ export function DashboardClient({ sessions }: DashboardClientProps) {
 
   return (
     <>
-      <div className="flex items-center justify-between">
+      <AppHeader searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+      <div className="flex items-center justify-between mt-6">
         <h3 className="text-xl font-semibold tracking-tight font-headline">
           {date ? format(date, "MMMM d, yyyy") : "All Sessions"}
         </h3>
@@ -121,7 +140,8 @@ export function DashboardClient({ sessions }: DashboardClientProps) {
                       return (
                         <div
                           key={session.id}
-                          className="flex items-center justify-between rounded-lg border p-3 hover:bg-secondary/50"
+                          className="flex items-center justify-between rounded-lg border p-3 hover:bg-secondary/50 cursor-pointer"
+                          onClick={() => handleViewDetails(session)}
                         >
                           <div className="flex items-center gap-4">
                               <Avatar>
@@ -140,7 +160,10 @@ export function DashboardClient({ sessions }: DashboardClientProps) {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleEdit(session)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit(session);
+                              }}
                             >
                               Edit
                             </Button>
@@ -167,6 +190,13 @@ export function DashboardClient({ sessions }: DashboardClientProps) {
         sessions={sessions}
         key={selectedSession?.id || 'new'}
       />
+      {viewedSession && (
+        <SessionDetailsDialog
+          isOpen={isDetailsOpen}
+          setIsOpen={setIsDetailsOpen}
+          session={viewedSession}
+        />
+      )}
     </>
   );
 }
