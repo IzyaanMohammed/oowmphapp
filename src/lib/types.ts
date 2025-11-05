@@ -1,7 +1,7 @@
 export type User = {
   id: string;
-  name: string;
   email: string;
+  displayName: string;
 };
 
 export type Session = {

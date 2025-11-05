@@ -14,11 +14,16 @@
           "type": "string",
           "description": "Email address of the user.",
           "format": "email"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The display name of the user."
         }
       },
       "required": [
         "id",
-        "email"
+        "email",
+        "displayName"
       ]
     },
     "SessionBooking": {

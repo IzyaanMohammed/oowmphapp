@@ -28,10 +28,12 @@ import { format, isSameDay } from "date-fns";
 import { Calendar } from "../ui/calendar";
 import { Textarea } from "../ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { useFirestore, useUser } from "@/firebase";
+import { useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { v4 as uuidv4 } from 'uuid';
+import type { User as AppUser } from "@/lib/types";
+import { useEffect } from "react";
 
 interface SessionFormProps {
   isOpen: boolean;
@@ -54,6 +56,12 @@ export function SessionForm({ isOpen, setIsOpen, session, sessions }: SessionFor
   const firestore = useFirestore();
   const { user } = useUser();
 
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+  const { data: userData } = useDoc<AppUser>(userDocRef);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -65,6 +73,13 @@ export function SessionForm({ isOpen, setIsOpen, session, sessions }: SessionFor
       notes: session?.notes || "",
     },
   });
+
+  useEffect(() => {
+    if (userData && !session) {
+      form.setValue('teacherName', userData.displayName);
+    }
+  }, [userData, form, session]);
+
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     if (!user) {
@@ -162,7 +177,7 @@ export function SessionForm({ isOpen, setIsOpen, session, sessions }: SessionFor
                 <FormItem>
                   <FormLabel>Teacher Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter teacher's name" {...field} />
+                    <Input placeholder="Enter teacher's name" {...field} readOnly={!!userData} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
