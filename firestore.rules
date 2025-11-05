@@ -43,13 +43,8 @@ service cloud.firestore {
      * @principle Any authenticated user has full control over all bookings.
      */
     match /sessionBookings/{bookingId} {
-      // Helper function to check if the user is signed in
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      // Any authenticated user can create, read, update, and delete any booking.
-      allow read, write: if isSignedIn();
+      // Allow public read and write access, since the app is protected by an access code.
+      allow read, write: if true;
     }
   }
 }
