@@ -29,12 +29,24 @@ export default function LoginPage() {
 
   const handleSignIn = (e: React.FormEvent) => {
     e.preventDefault();
-    initiateEmailSignIn(auth, email, password);
+    initiateEmailSignIn(auth, email, password, (error) => {
+        toast({
+            variant: "destructive",
+            title: "Sign In Failed",
+            description: error.message || "Invalid credentials.",
+        });
+    });
   };
   
   const handleCreateAccount = (e: React.FormEvent) => {
     e.preventDefault();
-    initiateEmailSignUp(auth, email, password);
+    initiateEmailSignUp(auth, email, password, (error) => {
+        toast({
+            variant: "destructive",
+            title: "Sign Up Failed",
+            description: error.message || "Could not create account.",
+        });
+    });
   }
 
   useEffect(() => {

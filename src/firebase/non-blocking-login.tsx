@@ -4,7 +4,7 @@ import {
   signInAnonymously,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  // Assume getAuth and app are initialized elsewhere
+  FirebaseError
 } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
 import { getSdks } from '.';
@@ -23,8 +23,10 @@ export function initiateAnonymousSignIn(authInstance: Auth): void {
   // Code continues immediately. Auth state change is handled by onAuthStateChanged listener.
 }
 
+type ErrorCallback = (error: FirebaseError) => void;
+
 /** Initiate email/password sign-up (non-blocking). */
-export function initiateEmailSignUp(authInstance: Auth, email: string, password: string): void {
+export function initiateEmailSignUp(authInstance: Auth, email: string, password: string, onError?: ErrorCallback): void {
   // CRITICAL: Call createUserWithEmailAndPassword directly. Do NOT use 'await createUserWithEmailAndPassword(...)'.
   createUserWithEmailAndPassword(authInstance, email, password)
     .then(userCredential => {
@@ -41,21 +43,28 @@ export function initiateEmailSignUp(authInstance: Auth, email: string, password:
     })
     .catch(error => {
       console.error("Email sign-up initiation failed:", error);
-      // This is a good place to show a toast to the user.
-      // We will throw this as a generic error since it is not a permissions issue.
-      throw error;
+      if (onError) {
+        onError(error);
+      } else {
+        // We will throw this as a generic error since it is not a permissions issue.
+        throw error;
+      }
     });
   // Code continues immediately. Auth state change is handled by onAuthStateChanged listener.
 }
 
 /** Initiate email/password sign-in (non-blocking). */
-export function initiateEmailSignIn(authInstance: Auth, email: string, password: string): void {
+export function initiateEmailSignIn(authInstance: Auth, email: string, password: string, onError?: ErrorCallback): void {
   // CRITICAL: Call signInWithEmailAndPassword directly. Do NOT use 'await signInWithEmailAndPassword(...)'.
   signInWithEmailAndPassword(authInstance, email, password).catch(error => {
     console.error("Email sign-in initiation failed:", error);
-    // This is a good place to show a toast to the user.
-    // We will throw this as a generic error since it is not a permissions issue.
-    throw error;
+    if (onError) {
+        onError(error);
+    } else {
+        // This is a good place to show a toast to the user.
+        // We will throw this as a generic error since it is not a permissions issue.
+        throw error;
+    }
   });
   // Code continues immediately. Auth state change is handled by onAuthStateChanged listener.
 }
