@@ -7,7 +7,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -21,8 +20,8 @@ import { useEffect } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("izyaan.k_oow@gemsed.com");
-  const [password, setPassword] = useState("123456");
+  const [email, setEmail] = useState("mphsessionuser@gemsed.com");
+  const [password, setPassword] = useState("mphuser@987");
   const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
