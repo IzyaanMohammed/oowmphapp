@@ -48,7 +48,7 @@ export function DashboardClient({ sessions }: DashboardClientProps) {
     // In a real app, you'd generate a PDF here.
     // For this prototype, we'll download a JSON representation of the data.
     const monthSessions = sessions.filter(session => date ? isSameMonth(session.date, date) : false);
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(monthSessions, null, 2));
+    const dataStr = "data:text/json;charset=utf-t," + encodeURIComponent(JSON.stringify(monthSessions, null, 2));
     const downloadAnchorNode = document.createElement('a');
     downloadAnchorNode.setAttribute("href",     dataStr);
     downloadAnchorNode.setAttribute("download", `session_report_${date ? format(date, 'yyyy-MM') : 'all'}.json`);
@@ -164,6 +164,7 @@ export function DashboardClient({ sessions }: DashboardClientProps) {
         isOpen={isFormOpen} 
         setIsOpen={setIsFormOpen}
         session={selectedSession}
+        sessions={sessions}
         key={selectedSession?.id || 'new'}
       />
     </>

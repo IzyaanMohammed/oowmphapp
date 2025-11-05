@@ -24,7 +24,7 @@ import type { Session } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
+import { format, isSameDay } from "date-fns";
 import { Calendar } from "../ui/calendar";
 import { Textarea } from "../ui/textarea";
 import { useToast } from "@/hooks/use-toast";
@@ -37,6 +37,7 @@ interface SessionFormProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
   session: Session | null;
+  sessions: Session[];
 }
 
 const formSchema = z.object({
@@ -48,7 +49,7 @@ const formSchema = z.object({
   notes: z.string().optional(),
 });
 
-export function SessionForm({ isOpen, setIsOpen, session }: SessionFormProps) {
+export function SessionForm({ isOpen, setIsOpen, session, sessions }: SessionFormProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
@@ -74,6 +75,40 @@ export function SessionForm({ isOpen, setIsOpen, session }: SessionFormProps) {
         });
         return;
     }
+    
+    // Time validation
+    const newStart = parseInt(values.startTime.replace(':', ''), 10);
+    const newEnd = parseInt(values.endTime.replace(':', ''), 10);
+
+    if (newStart >= newEnd) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Time",
+        description: "Start time must be before end time.",
+      });
+      return;
+    }
+
+    // Overlap validation
+    const sessionsOnSameDay = sessions.filter(s => 
+      isSameDay(s.date, values.date) && s.id !== session?.id
+    );
+
+    const hasOverlap = sessionsOnSameDay.some(existingSession => {
+      const existingStart = parseInt(existingSession.startTime.replace(':', ''), 10);
+      const existingEnd = parseInt(existingSession.endTime.replace(':', ''), 10);
+      return newStart < existingEnd && newEnd > existingStart;
+    });
+
+    if (hasOverlap) {
+      toast({
+        variant: "destructive",
+        title: "Booking Conflict",
+        description: "This session overlaps with an existing booking on the same day.",
+      });
+      return;
+    }
+
 
     const sessionData = {
       ...values,
