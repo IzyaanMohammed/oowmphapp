@@ -3,7 +3,7 @@
 import type { Session } from "@/lib/types";
 import { useState } from "react";
 import { Button } from "../ui/button";
-import { PlusCircle, CalendarDays, Download, Search } from "lucide-react";
+import { PlusCircle, CalendarDays, Download } from "lucide-react";
 import { Calendar } from "../ui/calendar";
 import {
   Card,
@@ -18,8 +18,9 @@ import { Badge } from "../ui/badge";
 import { SessionForm } from "./session-form";
 import { ScrollArea } from "../ui/scroll-area";
 import { SessionDetailsDialog } from "./session-details";
-import { Input } from "../ui/input";
 import { AppHeader } from "../layout/app-header";
+import jsPDF from "jspdf";
+import autoTable from 'jspdf-autotable';
 
 interface DashboardClientProps {
   sessions: Session[];
@@ -33,18 +34,21 @@ export function DashboardClient({ sessions }: DashboardClientProps) {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredSessionsByDate = sessions.filter((session) =>
+  const sessionsForSelectedDate = sessions.filter((session) =>
     date ? isSameDay(session.date, date) : true
   );
 
-  const filteredSessions = filteredSessionsByDate.filter((session) => {
+  const searchedSessions = sessions.filter((session) => {
     const query = searchQuery.toLowerCase();
+    if (!query) return false;
     return (
       session.programName.toLowerCase().includes(query) ||
       session.teacherName.toLowerCase().includes(query) ||
       (session.notes && session.notes.toLowerCase().includes(query))
     );
   });
+
+  const displayedSessions = searchQuery ? searchedSessions : sessionsForSelectedDate;
   
   const handleEdit = (session: Session) => {
     setSelectedSession(session);
@@ -67,14 +71,28 @@ export function DashboardClient({ sessions }: DashboardClientProps) {
       console.log("No sessions to report for the selected month.");
       return;
     }
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(monthSessions, null, 2));
-    const downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute("href",     dataStr);
-    downloadAnchorNode.setAttribute("download", `session_report_${date ? format(date, 'yyyy-MM') : 'all'}.json`);
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
+
+    const doc = new jsPDF();
+    const monthName = date ? format(date, 'MMMM yyyy') : 'All Time';
+    doc.text(`Session Report for ${monthName}`, 14, 16);
+    
+    autoTable(doc, {
+      startY: 22,
+      head: [['Date', 'Time', 'Program', 'Teacher', 'Notes']],
+      body: monthSessions.map(s => [
+        format(s.date, 'PPP'),
+        `${s.startTime} - ${s.endTime}`,
+        s.programName,
+        s.teacherName,
+        s.notes || ''
+      ]),
+      headStyles: { fillColor: [34, 65, 124] },
+      styles: { cellPadding: 3, fontSize: 10 },
+    });
+
+    doc.save(`session_report_${date ? format(date, 'yyyy-MM') : 'all'}.pdf`);
   };
+
 
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
@@ -85,7 +103,7 @@ export function DashboardClient({ sessions }: DashboardClientProps) {
       <AppHeader searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
       <div className="flex items-center justify-between mt-6">
         <h3 className="text-xl font-semibold tracking-tight font-headline">
-          {date ? format(date, "MMMM d, yyyy") : "All Sessions"}
+          {searchQuery ? `Search Results for "${searchQuery}"` : (date ? format(date, "MMMM d, yyyy") : "All Sessions")}
         </h3>
         <div className="flex gap-2">
             <Button onClick={handleDownloadReport} variant="outline">
@@ -105,7 +123,10 @@ export function DashboardClient({ sessions }: DashboardClientProps) {
               <Calendar
                 mode="single"
                 selected={date}
-                onSelect={setDate}
+                onSelect={(d) => {
+                  setDate(d);
+                  setSearchQuery("");
+                }}
                 className="p-3"
                 modifiers={{
                   hasSession: sessions.map((session) => session.date),
@@ -125,18 +146,21 @@ export function DashboardClient({ sessions }: DashboardClientProps) {
         <div className="lg:col-span-2">
           <Card className="h-full">
             <CardHeader>
-              <CardTitle>Bookings for the day</CardTitle>
+              <CardTitle>{searchQuery ? `Found ${displayedSessions.length} session(s)` : 'Bookings for the day'}</CardTitle>
               <CardDescription>
-                {filteredSessions.length > 0
-                  ? `${filteredSessions.length} session(s) scheduled.`
-                  : "No sessions scheduled for this day."}
+                {searchQuery
+                  ? "Displaying all sessions matching your search query."
+                  : (displayedSessions.length > 0
+                    ? `${displayedSessions.length} session(s) scheduled.`
+                    : "No sessions scheduled for this day.")
+                }
               </CardDescription>
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-[400px]">
                 <div className="space-y-4">
-                  {filteredSessions.length > 0 ? (
-                    filteredSessions.map((session) => {
+                  {displayedSessions.length > 0 ? (
+                    displayedSessions.map((session) => {
                       return (
                         <div
                           key={session.id}
@@ -152,6 +176,9 @@ export function DashboardClient({ sessions }: DashboardClientProps) {
                               <p className="text-sm text-muted-foreground">
                                 {session.teacherName}
                               </p>
+                              {searchQuery && (
+                                <p className="text-xs text-muted-foreground/80 mt-1">{format(session.date, 'PPP')}</p>
+                              )}
                             </div>
                           </div>
                           <div className="flex items-center gap-4">
@@ -174,7 +201,7 @@ export function DashboardClient({ sessions }: DashboardClientProps) {
                   ) : (
                     <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-10">
                       <CalendarDays className="h-12 w-12 mb-4" />
-                      <p>Select a day to see bookings or add a new one.</p>
+                      <p>{searchQuery ? "No sessions found for your search." : "Select a day to see bookings or add a new one."}</p>
                     </div>
                   )}
                 </div>
