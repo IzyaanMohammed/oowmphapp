@@ -51,27 +51,13 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (user) {
-      router.push('/dashboard');
-      return;
-    }
-
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        toast({
-          title: "Sign In Successful",
-          description: "Redirecting to your dashboard.",
-        });
-        router.push('/dashboard');
-      }
-    }, (error) => {
       toast({
-        variant: "destructive",
-        title: "Authentication Error",
-        description: error.message,
+        title: "Sign In Successful",
+        description: "Redirecting to your dashboard.",
       });
-    });
-    return () => unsubscribe();
-  }, [user, auth, router, toast]);
+      router.push('/dashboard');
+    }
+  }, [user, router, toast]);
 
   if (isUserLoading || user) {
     return (
