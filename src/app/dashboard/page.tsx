@@ -3,20 +3,18 @@ import { DashboardClient } from "@/components/dashboard/dashboard-client";
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import type { Session } from "@/lib/types";
 import { collection, query, Timestamp } from "firebase/firestore";
-import { useUser as useAuthUser } from "@/firebase";
 
 export default function DashboardPage() {
   const firestore = useFirestore();
-  const { user: authUser, isUserLoading: authUserLoading } = useAuthUser();
 
   const sessionsQuery = useMemoFirebase(() => {
-    if (!firestore || !authUser) return null;
+    if (!firestore) return null;
     return query(collection(firestore, 'sessionBookings'));
-  }, [firestore, authUser]);
+  }, [firestore]);
 
   const { data: sessions, isLoading: sessionsLoading } = useCollection<Session>(sessionsQuery);
 
-  if (authUserLoading || (sessionsLoading && !sessions)) {
+  if (sessionsLoading && !sessions) {
     return (
        <div className="flex items-center justify-center h-full">
         <div className="text-lg font-semibold">Loading Dashboard...</div>

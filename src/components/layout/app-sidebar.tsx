@@ -1,3 +1,5 @@
+'use client';
+
 import {
   Sidebar,
   SidebarHeader,
@@ -9,13 +11,14 @@ import {
 } from "@/components/ui/sidebar";
 import {
   Home,
-  Settings,
   LogOut,
 } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/icons";
+import { useAuth } from "../auth-provider";
 
 export function AppSidebar() {
+  const { logout } = useAuth();
   return (
     <Sidebar>
       <SidebarHeader>
@@ -45,19 +48,9 @@ export function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip={{ children: "Settings" }}>
-              <Link href="#">
-                <Settings />
-                <span>Settings</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip={{ children: "Log Out" }}>
-              <Link href="/login">
+            <SidebarMenuButton onClick={logout} tooltip={{ children: "Log Out" }}>
                 <LogOut />
                 <span>Log Out</span>
-              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

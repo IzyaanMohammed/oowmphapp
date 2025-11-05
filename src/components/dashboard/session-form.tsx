@@ -28,12 +28,10 @@ import { format, isSameDay } from "date-fns";
 import { Calendar } from "../ui/calendar";
 import { Textarea } from "../ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { useFirestore, useUser, useDoc, useMemoFirebase } from "@/firebase";
+import { useFirestore, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { v4 as uuidv4 } from 'uuid';
-import type { User as AppUser } from "@/lib/types";
-import { useEffect } from "react";
 
 interface SessionFormProps {
   isOpen: boolean;
@@ -54,13 +52,6 @@ const formSchema = z.object({
 export function SessionForm({ isOpen, setIsOpen, session, sessions }: SessionFormProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
-  const { user } = useUser();
-
-  const userDocRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [firestore, user]);
-  const { data: userData } = useDoc<AppUser>(userDocRef);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -74,23 +65,7 @@ export function SessionForm({ isOpen, setIsOpen, session, sessions }: SessionFor
     },
   });
 
-  useEffect(() => {
-    if (userData && !session) {
-      form.setValue('teacherName', userData.displayName);
-    }
-  }, [userData, form, session]);
-
-
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    if (!user) {
-        toast({
-            variant: "destructive",
-            title: "Authentication Error",
-            description: "You must be logged in to save a session.",
-        });
-        return;
-    }
-    
     const newStart = parseInt(values.startTime.replace(':', ''), 10);
     const newEnd = parseInt(values.endTime.replace(':', ''), 10);
 
@@ -125,16 +100,18 @@ export function SessionForm({ isOpen, setIsOpen, session, sessions }: SessionFor
     const sessionData = {
       ...values,
       date: values.date.toISOString(),
-      teacherId: user.uid,
+      // Since there's no user system, teacherId is no longer relevant
+      // We can remove it or set it to a placeholder if needed by the backend.
+      // teacherId: 'static_user', 
     };
 
     const id = session?.id || uuidv4();
-    const sessionWithId = { ...sessionData, id };
     const sessionRef = doc(firestore, 'sessionBookings', id);
     
     if (session) {
       setDocumentNonBlocking(sessionRef, sessionData, { merge: true });
     } else {
+      const sessionWithId = { ...sessionData, id };
       setDocumentNonBlocking(sessionRef, sessionWithId, {});
     }
 
@@ -177,7 +154,7 @@ export function SessionForm({ isOpen, setIsOpen, session, sessions }: SessionFor
                 <FormItem>
                   <FormLabel>Teacher Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter teacher's name" {...field} readOnly={!!userData} />
+                    <Input placeholder="Enter teacher's name" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

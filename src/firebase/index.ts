@@ -33,9 +33,11 @@ export function initializeFirebase() {
 }
 
 export function getSdks(firebaseApp: FirebaseApp) {
+  // We are not using auth anymore, but other parts of the template might expect it.
+  // We can return a null or mock object if needed, but for now we remove it
+  // from being created to save resources.
   return {
     firebaseApp,
-    auth: getAuth(firebaseApp),
     firestore: getFirestore(firebaseApp)
   };
 }

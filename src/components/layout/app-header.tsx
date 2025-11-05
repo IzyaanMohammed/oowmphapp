@@ -1,7 +1,5 @@
-import { Bell, Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { UserNav } from "@/components/user-nav";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
 interface AppHeaderProps {
@@ -29,11 +27,6 @@ export function AppHeader({ searchQuery, setSearchQuery }: AppHeaderProps) {
             />
           </div>
         </form>
-        <Button variant="ghost" size="icon" className="rounded-full">
-          <Bell className="h-5 w-5" />
-          <span className="sr-only">Toggle notifications</span>
-        </Button>
-        <UserNav />
       </div>
     </header>
   );

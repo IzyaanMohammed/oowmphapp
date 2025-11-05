@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,122 +13,70 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/icons";
-import { useAuth, useUser } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
-import { doc } from "firebase/firestore";
-import { getSdks } from "@/firebase";
-import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { useAuth } from "@/components/auth-provider";
+
+const ACCESS_CODE = "mphsessionusercode3579";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("mphsessionuser@gemsed.com");
-  const [password, setPassword] = useState("mphuser@987");
+  const [code, setCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const auth = useAuth();
   const router = useRouter();
+  const { login } = useAuth();
   const { toast } = useToast();
-  const { user, isUserLoading } = useUser();
 
-  const handleSignIn = async (e: React.FormEvent) => {
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      // The useEffect will handle the redirect
-    } catch (error: any) {
+
+    if (code === ACCESS_CODE) {
+      login();
+      toast({
+        title: "Access Granted",
+        description: "Welcome to MPH Booking Central.",
+      });
+      router.push("/dashboard");
+    } else {
       toast({
         variant: "destructive",
-        title: "Sign In Failed",
-        description: error.message || "Invalid credentials.",
+        title: "Access Denied",
+        description: "The provided access code is incorrect.",
       });
-    } finally {
       setIsLoading(false);
     }
   };
-  
-  const handleCreateAccount = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-      const { firestore } = getSdks(auth.app);
-      const userRef = doc(firestore, 'users', user.uid);
-      const displayName = user.email?.split('@')[0] || 'New User';
-      setDocumentNonBlocking(userRef, {
-        id: user.uid,
-        email: user.email,
-        displayName: displayName
-      }, {});
-      // The useEffect will handle the redirect
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Sign Up Failed",
-        description: error.message || "Could not create account.",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    if (user) {
-      router.push('/dashboard');
-    }
-  }, [user, router]);
-
-  if (isUserLoading || user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div>Loading...</div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <Card className="w-full max-w-sm">
         <CardHeader className="items-center">
           <Logo className="mb-2 h-12 w-12" />
-          <CardTitle className="text-2xl font-headline">Welcome Back</CardTitle>
-          <CardDescription>Enter your credentials to access your account</CardDescription>
+          <CardTitle className="text-2xl font-headline">
+            MPH Booking Central
+          </CardTitle>
+          <CardDescription>
+            Enter the access code to continue
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <form>
+          <form onSubmit={handleLogin}>
             <div className="grid w-full items-center gap-4">
               <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="access-code">Access Code</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="name@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={isLoading}
-                />
-              </div>
-              <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
+                  id="access-code"
                   type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••••••"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
                   disabled={isLoading}
                 />
               </div>
             </div>
             <div className="flex flex-col gap-2 mt-4">
-              <Button className="w-full" type="submit" onClick={handleSignIn} disabled={isLoading}>
-                {isLoading ? "Signing In..." : "Sign In"}
+              <Button className="w-full" type="submit" disabled={isLoading}>
+                {isLoading ? "Verifying..." : "Enter"}
               </Button>
-              {process.env.NODE_ENV === 'development' && (
-                 <Button variant="outline" className="w-full" type="button" onClick={handleCreateAccount} disabled={isLoading}>
-                    {isLoading ? "Creating..." : "Create Account (Dev only)"}
-                 </Button>
-              )}
             </div>
           </form>
         </CardContent>
