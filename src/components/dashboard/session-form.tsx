@@ -20,45 +20,44 @@ import {
 } from "../ui/form";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
-import type { Session, User } from "@/lib/types";
+import type { Session } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Calendar } from "../ui/calendar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Textarea } from "../ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { useFirestore } from "@/firebase";
-import { collection, doc } from "firebase/firestore";
-import { addDocumentNonBlocking, setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { useFirestore, useUser } from "@/firebase";
+import { doc } from "firebase/firestore";
+import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { v4 as uuidv4 } from 'uuid';
 
 interface SessionFormProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
   session: Session | null;
-  users: User[];
 }
 
 const formSchema = z.object({
   programName: z.string().min(2, "Program name is too short"),
-  teacherId: z.string().min(1, "Please select a teacher"),
+  teacherName: z.string().min(2, "Teacher name is too short"),
   date: z.date({ required_error: "A date is required." }),
   startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format (HH:MM)"),
   endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format (HH:MM)"),
   notes: z.string().optional(),
 });
 
-export function SessionForm({ isOpen, setIsOpen, session, users }: SessionFormProps) {
+export function SessionForm({ isOpen, setIsOpen, session }: SessionFormProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
+  const { user } = useUser();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       programName: session?.programName || "",
-      teacherId: session?.teacherId || "",
+      teacherName: session?.teacherName || "",
       date: session?.date || new Date(),
       startTime: session?.startTime || "",
       endTime: session?.endTime || "",
@@ -67,9 +66,19 @@ export function SessionForm({ isOpen, setIsOpen, session, users }: SessionFormPr
   });
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
+    if (!user) {
+        toast({
+            variant: "destructive",
+            title: "Authentication Error",
+            description: "You must be logged in to save a session.",
+        });
+        return;
+    }
+
     const sessionData = {
       ...values,
       date: values.date.toISOString(),
+      teacherId: user.uid, // All sessions are associated with the logged-in user
     };
 
     if (session) {
@@ -91,7 +100,6 @@ export function SessionForm({ isOpen, setIsOpen, session, users }: SessionFormPr
     setIsOpen(false);
   };
 
-  const teachers = users.filter(user => user.role === 'teacher');
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -99,7 +107,7 @@ export function SessionForm({ isOpen, setIsOpen, session, users }: SessionFormPr
         <DialogHeader>
           <DialogTitle>{session ? "Edit Session" : "Add New Session"}</DialogTitle>
           <DialogDescription>
-            Fill in the details below to schedule a new session.
+            Fill in the details below to schedule a new session. All fields are required.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -119,22 +127,13 @@ export function SessionForm({ isOpen, setIsOpen, session, users }: SessionFormPr
             />
             <FormField
               control={form.control}
-              name="teacherId"
+              name="teacherName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Teacher</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a teacher" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {teachers.map(teacher => (
-                        <SelectItem key={teacher.id} value={teacher.id}>{teacher.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormLabel>Teacher Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter teacher's name" {...field} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

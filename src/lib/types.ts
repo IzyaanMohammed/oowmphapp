@@ -1,19 +1,14 @@
-import type { PlaceHolderImages } from "./placeholder-images";
-
-export type UserRole = 'admin' | 'teacher' | 'unverified';
-
 export type User = {
   id: string;
   name: string;
   email: string;
-  avatarId: (typeof PlaceHolderImages)[number]['id'];
-  role: UserRole;
 };
 
 export type Session = {
   id: string;
   programName: string;
-  teacherId: string;
+  teacherId: string; // The UID of the user who created/owns the session
+  teacherName: string; // The name of the teacher for display
   date: Date;
   startTime: string; // "HH:MM"
   endTime: string; // "HH:MM"

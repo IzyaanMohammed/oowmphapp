@@ -2,22 +2,12 @@
  * @fileoverview Firestore Security Rules for MPH Booking Central.
  *
  * Core Philosophy:
- * This ruleset enforces a user-ownership model for user profiles and a teacher-ownership model for session bookings.
- * Users can only manage their own profile data. Teachers can only manage their own session bookings.
- * Signup is disabled; only pre-existing, seeded accounts can log in. There are no role-based admin privileges within these rules.
+ * This ruleset has been simplified to allow any authenticated user full access to manage session bookings.
+ * The concept of user roles has been removed. All logged-in users are treated as teachers with equal permissions.
  *
  * Data Structure:
- * - /users/{userId}: Stores individual user profiles. Access is restricted to the authenticated user matching the {userId}.
- * - /sessionBookings/{bookingId}: Stores session booking information. Access is restricted to the teacher associated with the booking (teacherId).
- *
- * Key Security Decisions:
- * - User listing is disallowed for privacy.
- * - Session bookings are secured based on the denormalized teacherId within each booking document.
- * - Data validation is minimized to facilitate rapid prototyping and iteration.
- *
- * Denormalization for Authorization:
- * The `sessionBookings` collection includes a `teacherId` field within each document. This denormalization is CRUCIAL.
- * It allows the security rules to validate access based on the teacher's UID without requiring costly `get()` calls to the `/users/{userId}` collection.
+ * - /users/{userId}: Stores minimal user profile data. Access is restricted to the authenticated user matching {userId}.
+ * - /sessionBookings/{bookingId}: Stores session booking information. Any authenticated user can create, read, update, and delete any booking.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -26,11 +16,6 @@ service cloud.firestore {
     /**
      * @description Manages user profile data.
      * @path /users/{userId}
-     * @allow (create) User with ID 'user123' can create their own profile (request.auth.uid == 'user123').
-     * @allow (get) User with ID 'user123' can read their profile.
-     * @allow (update) User with ID 'user123' can update their own profile.
-     * @allow (delete) User with ID 'user123' can delete their own profile.
-     * @deny (create) User with ID 'user456' cannot create a profile with ID 'user123' (mismatched UID).
      * @principle Enforces document ownership for user profiles.
      */
     match /users/{userId} {
@@ -44,28 +29,18 @@ service cloud.firestore {
         return isSignedIn() && request.auth.uid == userId;
       }
 
-      // Helper function to check if the existing document is owned by the requesting user.
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
+      // Any authenticated user can read any profile.
       allow get: if isSignedIn();
       allow list: if isSignedIn(); 
 
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id; // Enforce immutability of the userId.
-      allow delete: if isExistingOwner(userId);
+      // Only the owner can create, update, or delete their own profile.
+      allow write: if isOwner(userId);
     }
 
     /**
-     * @description Manages session booking data, enforcing teacher ownership.
+     * @description Manages session booking data, allowing full access for any authenticated user.
      * @path /sessionBookings/{bookingId}
-     * @allow (create) Teacher with ID 'teacher123' can create a booking with teacherId 'teacher123' (request.auth.uid == 'teacher123').
-     * @allow (get) Any user can read a session booking.
-     * @allow (update) Teacher with ID 'teacher123' can update a booking with teacherId 'teacher123'.
-     * @allow (delete) Teacher with ID 'teacher123' can delete a booking with teacherId 'teacher123'.
-     * @deny (create) Teacher with ID 'teacher456' cannot create a booking with teacherId 'teacher123' (mismatched UID).
-     * @principle Enforces teacher-ownership for session bookings.
+     * @principle Any authenticated user has full control over all bookings.
      */
     match /sessionBookings/{bookingId} {
       // Helper function to check if the user is signed in
@@ -73,23 +48,8 @@ service cloud.firestore {
         return request.auth != null;
       }
 
-      // Helper function to check if the user is the owner of the booking.
-      function isOwner(teacherId) {
-        return isSignedIn() && request.auth.uid == teacherId;
-      }
-
-      // Helper function to check if the user is the owner of an existing booking.
-      function isExistingOwner(teacherId) {
-        return isOwner(teacherId) && resource != null;
-      }
-
-
-      allow get: if isSignedIn(); // Public read access for bookings.
-      allow list: if isSignedIn();
-
-      allow create: if isSignedIn() && request.resource.data.teacherId == request.auth.uid;
-      allow update: if isExistingOwner(resource.data.teacherId);
-      allow delete: if isExistingOwner(resource.data.teacherId);
+      // Any authenticated user can create, read, update, and delete any booking.
+      allow read, write: if isSignedIn();
     }
   }
 }

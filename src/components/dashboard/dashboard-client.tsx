@@ -1,9 +1,9 @@
 "use client";
 
-import type { Session, User } from "@/lib/types";
+import type { Session } from "@/lib/types";
 import { useState } from "react";
 import { Button } from "../ui/button";
-import { PlusCircle, CalendarDays } from "lucide-react";
+import { PlusCircle, CalendarDays, Download } from "lucide-react";
 import { Calendar } from "../ui/calendar";
 import {
   Card,
@@ -12,7 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../ui/card";
-import { isSameDay, format } from "date-fns";
+import { isSameDay, format, isSameMonth } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { Badge } from "../ui/badge";
@@ -22,17 +22,13 @@ import { useUser } from "@/firebase";
 
 interface DashboardClientProps {
   sessions: Session[];
-  users: User[];
 }
 
-export function DashboardClient({ sessions, users }: DashboardClientProps) {
+export function DashboardClient({ sessions }: DashboardClientProps) {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const { user: currentUser } = useUser();
-
-  const getTeacher = (teacherId: string) =>
-    users.find((user) => user.id === teacherId);
 
   const filteredSessions = sessions.filter((session) =>
     date ? isSameDay(session.date, date) : true
@@ -48,16 +44,22 @@ export function DashboardClient({ sessions, users }: DashboardClientProps) {
     setIsFormOpen(true);
   }
 
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('');
-  }
+  const handleDownloadReport = () => {
+    // In a real app, you'd generate a PDF here.
+    // For this prototype, we'll download a JSON representation of the data.
+    const monthSessions = sessions.filter(session => date ? isSameMonth(session.date, date) : false);
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(monthSessions, null, 2));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href",     dataStr);
+    downloadAnchorNode.setAttribute("download", `session_report_${date ? format(date, 'yyyy-MM') : 'all'}.json`);
+    document.body.appendChild(downloadAnchorNode); // required for firefox
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+    console.log("Downloading report for:", date ? format(date, "MMMM yyyy") : "All time");
+  };
 
-  const canEdit = (session: Session) => {
-    if (!currentUser) return false;
-    const userRole = users.find(u => u.id === currentUser.uid)?.role;
-    if (userRole === 'admin') return true;
-    if (userRole === 'teacher' && session.teacherId === currentUser.uid) return true;
-    return false;
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
   }
 
   return (
@@ -66,10 +68,16 @@ export function DashboardClient({ sessions, users }: DashboardClientProps) {
         <h3 className="text-xl font-semibold tracking-tight font-headline">
           {date ? format(date, "MMMM d, yyyy") : "All Sessions"}
         </h3>
-        <Button onClick={handleAddNew}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Add Session
-        </Button>
+        <div className="flex gap-2">
+            <Button onClick={handleDownloadReport} variant="outline">
+              <Download className="mr-2 h-4 w-4" />
+              Download Report
+            </Button>
+            <Button onClick={handleAddNew}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Add Session
+            </Button>
+        </div>
       </div>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-1">
@@ -110,38 +118,32 @@ export function DashboardClient({ sessions, users }: DashboardClientProps) {
                 <div className="space-y-4">
                   {filteredSessions.length > 0 ? (
                     filteredSessions.map((session) => {
-                      const teacher = getTeacher(session.teacherId);
-                      const avatar = PlaceHolderImages.find(p => p.id === teacher?.avatarId);
                       return (
                         <div
                           key={session.id}
                           className="flex items-center justify-between rounded-lg border p-3 hover:bg-secondary/50"
                         >
                           <div className="flex items-center gap-4">
-                            {teacher && (
-                               <Avatar>
-                                <AvatarImage src={avatar?.imageUrl} data-ai-hint={avatar?.imageHint} />
-                                <AvatarFallback>{getInitials(teacher.name)}</AvatarFallback>
+                              <Avatar>
+                                <AvatarFallback>{getInitials(session.teacherName)}</AvatarFallback>
                               </Avatar>
-                            )}
                             <div>
                               <p className="font-semibold">{session.programName}</p>
                               <p className="text-sm text-muted-foreground">
-                                {teacher?.name}
+                                {session.teacherName}
                               </p>
                             </div>
                           </div>
                           <div className="flex items-center gap-4">
                             <Badge variant="outline">{`${session.startTime} - ${session.endTime}`}</Badge>
-                            {canEdit(session) && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleEdit(session)}
-                              >
-                                Edit
-                              </Button>
-                            )}
+                            
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEdit(session)}
+                            >
+                              Edit
+                            </Button>
                           </div>
                         </div>
                       );
@@ -162,7 +164,6 @@ export function DashboardClient({ sessions, users }: DashboardClientProps) {
         isOpen={isFormOpen} 
         setIsOpen={setIsFormOpen}
         session={selectedSession}
-        users={users}
         key={selectedSession?.id || 'new'}
       />
     </>

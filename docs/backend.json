@@ -8,24 +8,17 @@
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the user.",
-          "format": "uuid"
+          "description": "Unique identifier for the user (matches Firebase Auth UID)."
         },
         "email": {
           "type": "string",
           "description": "Email address of the user.",
           "format": "email"
-        },
-        "role": {
-          "type": "string",
-          "description": "Role of the user (e.g., teacher, unverified, admin).",
-          "format": "string"
         }
       },
       "required": [
         "id",
-        "email",
-        "role"
+        "email"
       ]
     },
     "SessionBooking": {
@@ -36,12 +29,15 @@
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the session booking.",
-          "format": "uuid"
+          "description": "Unique identifier for the session booking."
         },
         "teacherId": {
           "type": "string",
-          "description": "Reference to the teacher associated with this session. (Relationship: User 1:N SessionBooking)"
+          "description": "The UID of the user who created the booking."
+        },
+        "teacherName": {
+          "type": "string",
+          "description": "The name of the teacher conducting the session."
         },
         "programName": {
           "type": "string",
@@ -60,6 +56,7 @@
       "required": [
         "id",
         "teacherId",
+        "teacherName",
         "programName",
         "date"
       ]
@@ -67,8 +64,7 @@
   },
   "auth": {
     "providers": [
-      "password",
-      "anonymous"
+      "password"
     ]
   },
   "firestore": {
@@ -80,7 +76,7 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores user information. Only the authenticated user (or admin, based on separate rules) can read/write their own document. This collection is used for authentication context. Should not be used for booking authorization. Roles are managed out of band.",
+          "description": "Stores basic user information. Any authenticated user can read/write their own document.",
           "params": [
             {
               "name": "userId",
@@ -96,7 +92,7 @@
           "schema": {
             "$ref": "#/backend/entities/SessionBooking"
           },
-          "description": "Stores session booking information. Includes denormalized 'teacherId' for authorization independence. Teachers can only modify their own bookings.",
+          "description": "Stores session booking information. Any authenticated user can create, read, update, or delete any booking.",
           "params": [
             {
               "name": "bookingId",
@@ -106,6 +102,6 @@
         }
       }
     ],
-    "reasoning": "This Firestore data structure is designed to support the MPH Booking Central application, focusing on secure access and efficient management of session bookings and user information. The structure emphasizes role-based access control (teacher, unverified, admin) and ensures that only authenticated users can access the data. Authentication Independence is achieved by storing the `teacherId` within the `SessionBooking` document. This enables rules to validate access without needing to read the User document.\n\n**Authorization Independence:** The `teacherId` field in the `sessionBookings` collection denormalizes the user-session relationship, so rules can validate access based on the ID in the `request.auth.uid` without requiring a `get()` call to the `/users/{userId}` collection.\n\n**Segregation:** All bookings are stored in a single collection (`sessionBookings`), enforcing a uniform security posture. Teachers can only modify bookings where their `id` matches the `teacherId` in the `sessionBookings` document. This aligns with the business rules, where admins would have broader access based on a separate rule (not defined here, as signup is disabled).\n\n**Access Modeling:** The `sessionBookings` collection uses the `teacherId` to establish an owner-like relationship, meaning that a teacher can only edit session bookings related to them. There are no global roles (DBAC), as admin roles would be managed out of band.\n\n**QAPs Support:** Using a single collection (`sessionBookings`) simplifies listing operations. A teacher can list all bookings where the `teacherId` matches their `uid` to display their sessions. The denormalization also ensures that listing operations can be secured without additional `get()` calls."
+    "reasoning": "This Firestore data structure is designed for simplicity, allowing any authenticated user to manage session bookings. The user's role is no longer a factor, streamlining access control. All users are treated as teachers with full permissions on the `sessionBookings` collection. The `teacherId` in a booking links it to the user who created it, but this is for informational purposes rather than for security rules."
   }
 }
