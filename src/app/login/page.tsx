@@ -50,6 +50,11 @@ export default function LoginPage() {
   }
 
   useEffect(() => {
+    if (user) {
+      router.push('/dashboard');
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         toast({
@@ -66,7 +71,7 @@ export default function LoginPage() {
       });
     });
     return () => unsubscribe();
-  }, [auth, router, toast]);
+  }, [user, auth, router, toast]);
 
   if (isUserLoading || user) {
     return (
