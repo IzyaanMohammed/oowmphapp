@@ -59,7 +59,7 @@ export function SessionForm({ isOpen, setIsOpen, session, sessions }: SessionFor
     defaultValues: {
       programName: session?.programName || "",
       teacherName: session?.teacherName || "",
-      date: session?.date || new Date(),
+      date: session?.date ? new Date(session.date) : new Date(),
       startTime: session?.startTime || "",
       endTime: session?.endTime || "",
       notes: session?.notes || "",
@@ -76,22 +76,19 @@ export function SessionForm({ isOpen, setIsOpen, session, sessions }: SessionFor
         return;
     }
     
-    // Time validation
     const newStart = parseInt(values.startTime.replace(':', ''), 10);
     const newEnd = parseInt(values.endTime.replace(':', ''), 10);
 
     if (newStart >= newEnd) {
-      toast({
-        variant: "destructive",
-        title: "Invalid Time",
-        description: "Start time must be before end time.",
+      form.setError("endTime", {
+        type: "manual",
+        message: "End time must be after start time.",
       });
       return;
     }
 
-    // Overlap validation
     const sessionsOnSameDay = sessions.filter(s => 
-      isSameDay(s.date, values.date) && s.id !== session?.id
+      isSameDay(new Date(s.date), values.date) && s.id !== session?.id
     );
 
     const hasOverlap = sessionsOnSameDay.some(existingSession => {
@@ -113,18 +110,16 @@ export function SessionForm({ isOpen, setIsOpen, session, sessions }: SessionFor
     const sessionData = {
       ...values,
       date: values.date.toISOString(),
-      teacherId: user.uid, // All sessions are associated with the logged-in user
+      teacherId: user.uid,
     };
 
+    const id = session?.id || uuidv4();
+    const sessionWithId = { ...sessionData, id };
+    const sessionRef = doc(firestore, 'sessionBookings', id);
+    
     if (session) {
-      // Update existing session
-      const sessionRef = doc(firestore, 'sessionBookings', session.id);
       setDocumentNonBlocking(sessionRef, sessionData, { merge: true });
     } else {
-      // Create new session
-      const newId = uuidv4();
-      const sessionWithId = { ...sessionData, id: newId };
-      const sessionRef = doc(firestore, 'sessionBookings', newId);
       setDocumentNonBlocking(sessionRef, sessionWithId, {});
     }
 
