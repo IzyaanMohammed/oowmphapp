@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,50 +14,69 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/icons";
 import { useAuth, useUser } from "@/firebase";
-import { initiateEmailSignIn, initiateEmailSignUp } from "@/firebase/non-blocking-login";
 import { useToast } from "@/hooks/use-toast";
-import { useEffect } from "react";
-import { onAuthStateChanged } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { doc } from "firebase/firestore";
+import { getSdks } from "@/firebase";
+import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("mphsessionuser@gemsed.com");
   const [password, setPassword] = useState("mphuser@987");
+  const [isLoading, setIsLoading] = useState(false);
   const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
 
-  const handleSignIn = (e: React.FormEvent) => {
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    initiateEmailSignIn(auth, email, password, (error) => {
-        toast({
-            variant: "destructive",
-            title: "Sign In Failed",
-            description: error.message || "Invalid credentials.",
-        });
-    });
+    setIsLoading(true);
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      // The useEffect will handle the redirect
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Sign In Failed",
+        description: error.message || "Invalid credentials.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
   
-  const handleCreateAccount = (e: React.FormEvent) => {
+  const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
-    initiateEmailSignUp(auth, email, password, (error) => {
-        toast({
-            variant: "destructive",
-            title: "Sign Up Failed",
-            description: error.message || "Could not create account.",
-        });
-    });
+    setIsLoading(true);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      const { firestore } = getSdks(auth.app);
+      const userRef = doc(firestore, 'users', user.uid);
+      const displayName = user.email?.split('@')[0] || 'New User';
+      setDocumentNonBlocking(userRef, {
+        id: user.uid,
+        email: user.email,
+        displayName: displayName
+      }, {});
+      // The useEffect will handle the redirect
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Sign Up Failed",
+        description: error.message || "Could not create account.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   useEffect(() => {
     if (user) {
-      toast({
-        title: "Sign In Successful",
-        description: "Redirecting to your dashboard.",
-      });
       router.push('/dashboard');
     }
-  }, [user, router, toast]);
+  }, [user, router]);
 
   if (isUserLoading || user) {
     return (
@@ -86,6 +105,7 @@ export default function LoginPage() {
                   placeholder="name@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  disabled={isLoading}
                 />
               </div>
               <div className="flex flex-col space-y-1.5">
@@ -96,16 +116,17 @@ export default function LoginPage() {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading}
                 />
               </div>
             </div>
             <div className="flex flex-col gap-2 mt-4">
-              <Button className="w-full" type="submit" onClick={handleSignIn}>
-                Sign In
+              <Button className="w-full" type="submit" onClick={handleSignIn} disabled={isLoading}>
+                {isLoading ? "Signing In..." : "Sign In"}
               </Button>
               {process.env.NODE_ENV === 'development' && (
-                 <Button variant="outline" className="w-full" type="button" onClick={handleCreateAccount}>
-                    Create Account (Dev only)
+                 <Button variant="outline" className="w-full" type="button" onClick={handleCreateAccount} disabled={isLoading}>
+                    {isLoading ? "Creating..." : "Create Account (Dev only)"}
                  </Button>
               )}
             </div>
