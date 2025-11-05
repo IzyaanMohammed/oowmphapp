@@ -1,3 +1,4 @@
+import React from 'react';
 import type {Metadata} from 'next';
 import './globals.css';
 import { cn } from "@/lib/utils";
@@ -21,7 +22,7 @@ export default function RootLayout({
   const isLoginPage = React.Children.toArray(children).some((child: any) => {
     // A bit of a hack, but there's no great way to detect the route from a layout in Next 13+ App router
     // This will break if the login page component name changes or is wrapped
-    return child.type.name === 'LoginPage' || child.props.childProp?.segment === 'login';
+    return child.type?.name === 'LoginPage' || child.props?.childProp?.segment === 'login';
   });
 
   return (
