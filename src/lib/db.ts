@@ -17,17 +17,31 @@ async function kvFetch(command: any[]) {
     return null;
   }
 
-  const response = await fetch(`${KV_REST_API_URL}`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${KV_REST_API_TOKEN}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(command),
-  });
+  const start = Date.now();
+  console.log(`[KV] Executing command: ${command[0]} ${command[1] || ''}...`);
 
-  const result = await response.json();
-  return result.result;
+  try {
+    const response = await fetch(`${KV_REST_API_URL}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${KV_REST_API_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(command),
+      // Add a timeout signal to prevent hanging forever
+      signal: AbortSignal.timeout(10000), 
+    });
+
+    const result = await response.json();
+    const duration = Date.now() - start;
+    console.log(`[KV] Command ${command[0]} completed in ${duration}ms`);
+    
+    return result.result;
+  } catch (error) {
+    const duration = Date.now() - start;
+    console.error(`[KV] Command ${command[0]} failed after ${duration}ms:`, error);
+    throw error;
+  }
 }
 
 export async function readDb(): Promise<DbSchema> {
