@@ -1,6 +1,5 @@
 import { AnnouncementsClient } from "./announcements-client";
 import { getBulletins } from "@/app/actions";
-import { AppHeaderWrapper } from "@/components/layout/app-header-wrapper";
 
 export default async function AnnouncementsPage() {
   const initialBulletins = await getBulletins();
