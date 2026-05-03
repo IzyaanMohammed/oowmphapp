@@ -29,10 +29,14 @@ export function FirebaseErrorListener() {
     };
   }, []);
 
-  // On re-render, if an error exists in state, throw it.
-  if (error) {
-    throw error;
-  }
+  // On re-render, if an error exists in state, show a warning instead of throwing.
+  useEffect(() => {
+    if (error) {
+      console.warn('Firestore Permission Denied:', error.message);
+      // We don't throw anymore to prevent the whole app from crashing.
+      // The individual components should handle the lack of data.
+    }
+  }, [error]);
 
   // This component renders nothing.
   return null;

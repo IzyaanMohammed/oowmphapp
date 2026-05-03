@@ -1,9 +1,10 @@
-// User type is no longer needed as we are not managing individual users.
-// export type User = {
-//   id: string;
-//   email: string;
-//   displayName: string;
-// };
+export type User = {
+  id: string;
+  name: string;
+  email: string;
+  avatarId: string;
+  role: 'teacher' | 'admin' | 'unverified';
+};
 
 export type Session = {
   id: string;
@@ -14,4 +15,20 @@ export type Session = {
   startTime: string; // "HH:MM"
   endTime: string; // "HH:MM"
   notes?: string;
+  createdAt?: Date;
+};
+
+export type Announcement = {
+  id: string;
+  title: string;
+  message: string;
+  authorName: string;
+  createdAt: Date;
+  updatedAt?: Date;
+};
+export type Note = {
+  id: string;
+  content: string;
+  color: string;
+  createdAt: Date;
 };

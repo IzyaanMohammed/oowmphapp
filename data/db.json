@@ -1,0 +1,27 @@
+{
+  "sessions": [
+    {
+      "programName": "TEST",
+      "teacherName": "izyaan",
+      "date": "2026-05-03T20:00:00.000Z",
+      "startTime": "17:23",
+      "endTime": "18:23",
+      "notes": "TEST - BODY",
+      "id": "53ecebbd-1932-4669-8ed7-d79f0f13367f",
+      "authorId": "532940",
+      "updatedAt": "2026-05-03T09:24:05.094Z",
+      "createdAt": "2026-05-03T09:24:05.094Z"
+    }
+  ],
+  "bulletins": [
+    {
+      "title": "TEST",
+      "message": "TEST",
+      "authorName": "Staff",
+      "id": "033ad226-242a-4121-915f-9570b52a6bde",
+      "updatedAt": "2026-05-03T09:28:39.318Z",
+      "createdAt": "2026-05-03T09:28:39.318Z"
+    }
+  ],
+  "notes": []
+}

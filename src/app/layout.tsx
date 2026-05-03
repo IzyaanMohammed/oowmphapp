@@ -1,8 +1,28 @@
 import './globals.css';
 import type { Metadata } from 'next';
-import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/components/auth-provider';
+import { Inter, PT_Sans, Shadows_Into_Light } from 'next/font/google';
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+});
+
+const ptSans = PT_Sans({
+  weight: ['400', '700'],
+  subsets: ['latin'],
+  variable: '--font-pt-sans',
+  display: 'swap',
+});
+
+const shadowsIntoLight = Shadows_Into_Light({
+  weight: ['400'],
+  subsets: ['latin'],
+  variable: '--font-shadows-into-light',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'MPH Booking Central',
@@ -16,28 +36,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap"
-          rel="stylesheet"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Source+Code+Pro&display=swap"
-          rel="stylesheet"
-        />
-      </head>
-      <body
-        className={cn(
-          'font-body antialiased',
-          'min-h-screen bg-background font-sans'
-        )}
-      >
+      <body className={`${inter.variable} ${ptSans.variable} ${shadowsIntoLight.variable} font-body antialiased min-h-screen bg-background`}>
         <AuthProvider>{children}</AuthProvider>
         <Toaster />
       </body>

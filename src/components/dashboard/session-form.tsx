@@ -28,9 +28,6 @@ import { format, isSameDay } from "date-fns";
 import { Calendar } from "../ui/calendar";
 import { Textarea } from "../ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { useFirestore, useMemoFirebase } from "@/firebase";
-import { doc } from "firebase/firestore";
-import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { v4 as uuidv4 } from 'uuid';
 
 interface SessionFormProps {
@@ -38,6 +35,7 @@ interface SessionFormProps {
   setIsOpen: (isOpen: boolean) => void;
   session: Session | null;
   sessions: Session[];
+  onSave?: (session: Session) => void;
 }
 
 const formSchema = z.object({
@@ -49,9 +47,8 @@ const formSchema = z.object({
   notes: z.string().optional(),
 });
 
-export function SessionForm({ isOpen, setIsOpen, session, sessions }: SessionFormProps) {
+export function SessionForm({ isOpen, setIsOpen, session, sessions, onSave }: SessionFormProps) {
   const { toast } = useToast();
-  const firestore = useFirestore();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -96,24 +93,13 @@ export function SessionForm({ isOpen, setIsOpen, session, sessions }: SessionFor
       return;
     }
 
-
-    const sessionData = {
+    const sessionData: Session = {
       ...values,
-      date: values.date.toISOString(),
-      // Since there's no user system, teacherId is no longer relevant
-      // We can remove it or set it to a placeholder if needed by the backend.
-      // teacherId: 'static_user', 
+      id: session?.id || uuidv4(),
+      date: values.date,
     };
 
-    const id = session?.id || uuidv4();
-    const sessionRef = doc(firestore, 'sessionBookings', id);
-    
-    if (session) {
-      setDocumentNonBlocking(sessionRef, sessionData, { merge: true });
-    } else {
-      const sessionWithId = { ...sessionData, id };
-      setDocumentNonBlocking(sessionRef, sessionWithId, {});
-    }
+    if (onSave) onSave(sessionData);
 
     toast({
         title: session ? "Session Updated" : "Session Created",
@@ -122,129 +108,144 @@ export function SessionForm({ isOpen, setIsOpen, session, sessions }: SessionFor
     setIsOpen(false);
   };
 
-
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="sm:max-w-[480px]">
-        <DialogHeader>
-          <DialogTitle>{session ? "Edit Session" : "Add New Session"}</DialogTitle>
-          <DialogDescription>
-            Fill in the details below to schedule a new session. All fields are required.
-          </DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="programName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Program Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g. Mathematics 101" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="teacherName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Teacher Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter teacher's name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-             <FormField
-              control={form.control}
-              name="date"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Date</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
+      <DialogContent className="sm:max-w-[550px] p-0 overflow-hidden border-none shadow-2xl bg-card/95 backdrop-blur-xl">
+        <div className="bg-primary/10 px-8 py-6 border-b border-primary/10 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 blur-3xl rounded-full -mr-16 -mt-16" />
+          <DialogHeader className="relative z-10">
+            <DialogTitle className="text-3xl font-black tracking-tight">
+              {session ? "Edit Session" : "New Session"}
+            </DialogTitle>
+            <DialogDescription className="text-base font-medium text-primary/70">
+              Schedule and manage academic appointments with precision.
+            </DialogDescription>
+          </DialogHeader>
+        </div>
+
+        <div className="p-8">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                  control={form.control}
+                  name="programName"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1.5">
+                      <FormLabel className="text-xs font-black uppercase tracking-widest text-muted-foreground">Program Name</FormLabel>
                       <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
+                        <Input placeholder="e.g. Mathematics 101" className="h-12 px-4 rounded-xl bg-muted/30 border-2 border-transparent focus:border-primary/50 focus:bg-background transition-all shadow-inner" {...field} />
                       </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="grid grid-cols-2 gap-4">
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="teacherName"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1.5">
+                      <FormLabel className="text-xs font-black uppercase tracking-widest text-muted-foreground">Teacher Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter name" className="h-12 px-4 rounded-xl bg-muted/30 border-2 border-transparent focus:border-primary/50 focus:bg-background transition-all shadow-inner" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="date"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col space-y-1.5">
+                    <FormLabel className="text-xs font-black uppercase tracking-widest text-muted-foreground">Date</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "h-12 px-4 rounded-xl bg-muted/30 border-2 border-transparent focus:border-primary/50 focus:bg-background transition-all text-left font-medium shadow-inner",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 text-primary" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0 rounded-2xl overflow-hidden shadow-2xl border-none" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-2 gap-6">
+                 <FormField
+                  control={form.control}
+                  name="startTime"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1.5">
+                      <FormLabel className="text-xs font-black uppercase tracking-widest text-muted-foreground">Start Time</FormLabel>
+                      <FormControl>
+                        <Input type="time" className="h-12 px-4 rounded-xl bg-muted/30 border-2 border-transparent focus:border-primary/50 focus:bg-background transition-all shadow-inner" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={form.control}
+                  name="endTime"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1.5">
+                      <FormLabel className="text-xs font-black uppercase tracking-widest text-muted-foreground">End Time</FormLabel>
+                      <FormControl>
+                        <Input type="time" className="h-12 px-4 rounded-xl bg-muted/30 border-2 border-transparent focus:border-primary/50 focus:bg-background transition-all shadow-inner" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
                <FormField
                 control={form.control}
-                name="startTime"
+                name="notes"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Start Time</FormLabel>
+                  <FormItem className="space-y-1.5">
+                    <FormLabel className="text-xs font-black uppercase tracking-widest text-muted-foreground">Notes</FormLabel>
                     <FormControl>
-                      <Input type="time" {...field} />
+                      <Textarea placeholder="Session objectives..." className="p-4 rounded-xl bg-muted/30 border-2 border-transparent focus:border-primary/50 focus:bg-background transition-all min-h-[100px] resize-none shadow-inner" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-               <FormField
-                control={form.control}
-                name="endTime"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>End Time</FormLabel>
-                    <FormControl>
-                      <Input type="time" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-             <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Notes</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Any additional notes for the session..." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="flex justify-end gap-2 pt-4">
-                <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>Cancel</Button>
-                <Button type="submit">Save Session</Button>
-            </div>
-          </form>
-        </Form>
+
+              <div className="flex justify-end gap-4 pt-4">
+                  <Button type="button" variant="ghost" onClick={() => setIsOpen(false)} className="h-12 px-6 rounded-xl font-bold">Cancel</Button>
+                  <Button type="submit" className="h-12 px-8 rounded-xl bg-primary hover:bg-primary/90 font-bold shadow-lg shadow-primary/20">
+                    {session ? "Update Session" : "Create Session"}
+                  </Button>
+              </div>
+            </form>
+          </Form>
+        </div>
       </DialogContent>
     </Dialog>
   );

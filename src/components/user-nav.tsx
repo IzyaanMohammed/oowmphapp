@@ -11,17 +11,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useAuth, useUser } from "@/firebase";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
+import { useAuth } from "@/context/auth-context";
 import { CreditCard, LogOut, Settings, User } from "lucide-react";
-import { signOut } from "firebase/auth";
 
 export function UserNav() {
-  const { user } = useUser();
-  const auth = useAuth();
+  const { user, logout } = useAuth();
 
   const handleLogout = () => {
-    signOut(auth);
+    logout();
   };
   
   if (!user) {
@@ -32,7 +29,7 @@ export function UserNav() {
     return name.split(' ').map(n => n[0]).join('');
   }
 
-  const displayName = user.displayName || user.email || 'User';
+  const displayName = user.name || user.email || 'User';
   const displayEmail = user.email || '';
 
   return (

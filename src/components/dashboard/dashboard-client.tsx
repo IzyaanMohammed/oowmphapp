@@ -1,32 +1,61 @@
 "use client";
 
 import type { Session } from "@/lib/types";
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "../ui/button";
-import { PlusCircle, CalendarDays, Download } from "lucide-react";
-import { Calendar } from "../ui/calendar";
+import { PlusCircle, Download, LayoutDashboard, Megaphone, Wrench, PenTool, Sparkles, User, ShieldCheck, Crown } from "lucide-react";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "../ui/card";
-import { isSameDay, format, isSameMonth } from "date-fns";
-import { Avatar, AvatarFallback } from "../ui/avatar";
+import { isSameDay, format, isSameMonth, setHours, setMinutes, isAfter } from "date-fns";
 import { Badge } from "../ui/badge";
 import { SessionForm } from "./session-form";
-import { ScrollArea } from "../ui/scroll-area";
 import { SessionDetailsDialog } from "./session-details";
-import { AppHeader } from "../layout/app-header";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
+import { AnnouncementsTab } from "./announcements-tab";
+import { FileConverterTab } from "./file-converter-tab";
+import { StickyNotes } from "./sticky-notes";
+import { SessionList } from "./session-list";
+import { SessionCalendar } from "./session-calendar";
 import jsPDF from "jspdf";
 import autoTable from 'jspdf-autotable';
+import { getSessions, saveSession, deleteSession } from "@/app/actions";
+import { AppHeader } from "../layout/app-header";
+import { useAuth } from "@/context/auth-context";
+import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+import { useSearchParams, useRouter } from "next/navigation";
+import { Suspense } from "react";
 
 interface DashboardClientProps {
-  sessions: Session[];
+  initialSessions: Session[];
 }
 
-export function DashboardClient({ sessions }: DashboardClientProps) {
+function DashboardContent({ initialSessions }: DashboardClientProps) {
+  const { user, role } = useAuth();
+  const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  
+  const [sessions, setSessions] = useState<Session[]>(() => {
+    return (initialSessions || []).map((s: any) => {
+        try {
+            return {
+                ...s,
+                date: s.date ? new Date(s.date) : new Date(),
+                createdAt: s.createdAt ? new Date(s.createdAt) : undefined,
+            };
+        } catch (e) {
+            console.error("Date parse error", e);
+            return { ...s, date: new Date() };
+        }
+    });
+  });
+  
+  const [activeTab, setActiveTab] = useState("sessions");
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
@@ -34,11 +63,38 @@ export function DashboardClient({ sessions }: DashboardClientProps) {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const sessionsForSelectedDate = sessions.filter((session) =>
-    date ? isSameDay(session.date, date) : true
-  );
+  const isAdmin = role === 'admin';
 
-  const searchedSessions = sessions.filter((session) => {
+  useEffect(() => {
+    const tab = searchParams?.get('tab');
+    if (tab && tab !== activeTab) {
+        setActiveTab(tab);
+    }
+  }, [searchParams, activeTab]);
+
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const fresh = await getSessions();
+        if (fresh && Array.isArray(fresh)) {
+          setSessions(fresh.map((s: any) => ({
+            ...s,
+            date: new Date(s.date),
+            createdAt: s.createdAt ? new Date(s.createdAt) : undefined,
+          })));
+        }
+      } catch (err) {
+        console.error("Polling error:", err);
+      }
+    }, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const sessionsForSelectedDate = useMemo(() => sessions.filter((session) =>
+    date ? isSameDay(session.date, date) : true
+  ), [sessions, date]);
+
+  const searchedSessions = useMemo(() => sessions.filter((session) => {
     const query = searchQuery.toLowerCase();
     if (!query) return false;
     return (
@@ -46,9 +102,11 @@ export function DashboardClient({ sessions }: DashboardClientProps) {
       session.teacherName.toLowerCase().includes(query) ||
       (session.notes && session.notes.toLowerCase().includes(query))
     );
-  });
+  }), [sessions, searchQuery]);
 
-  const displayedSessions = searchQuery ? searchedSessions : sessionsForSelectedDate;
+  const displayedSessions = useMemo(() => 
+    searchQuery ? searchedSessions : sessionsForSelectedDate
+  , [searchQuery, searchedSessions, sessionsForSelectedDate]);
   
   const handleEdit = (session: Session) => {
     setSelectedSession(session);
@@ -65,12 +123,35 @@ export function DashboardClient({ sessions }: DashboardClientProps) {
     setIsDetailsOpen(true);
   };
 
+  const onSaveSession = async (sessionData: Session) => {
+    const sessionWithAuthor = {
+        ...sessionData,
+        authorId: (sessionData as any).authorId || user?.personalId,
+        date: sessionData.date.toISOString(),
+    };
+
+    setSessions(prev => {
+        const index = prev.findIndex(s => s.id === sessionData.id);
+        if (index > -1) {
+            const updated = [...prev];
+            updated[index] = { ...sessionData, authorId: (sessionData as any).authorId || user?.personalId } as any;
+            return updated;
+        }
+        return [{ ...sessionData, authorId: user?.personalId } as any, ...prev];
+    });
+
+    await saveSession(sessionWithAuthor);
+  };
+
+  const onDeleteSession = async (id: string) => {
+    if (!window.confirm("Delete this session?")) return;
+    setSessions(prev => prev.filter(s => s.id !== id));
+    await deleteSession(id);
+  };
+
   const handleDownloadReport = () => {
     const monthSessions = sessions.filter(session => date ? isSameMonth(session.date, date) : false);
-    if (monthSessions.length === 0) {
-      console.log("No sessions to report for the selected month.");
-      return;
-    }
+    if (monthSessions.length === 0) return;
 
     const doc = new jsPDF();
     const monthName = date ? format(date, 'MMMM yyyy') : 'All Time';
@@ -93,137 +174,163 @@ export function DashboardClient({ sessions }: DashboardClientProps) {
     doc.save(`session_report_${date ? format(date, 'yyyy-MM') : 'all'}.pdf`);
   };
 
-
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
-  }
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    router.push(`/dashboard?tab=${value}`);
+  };
 
   return (
-    <>
+    <div className="flex flex-col min-h-screen">
       <AppHeader searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
-      <div className="flex items-center justify-between mt-6">
-        <h3 className="text-xl font-semibold tracking-tight font-headline">
-          {searchQuery ? `Search Results for "${searchQuery}"` : (date ? format(date, "MMMM d, yyyy") : "All Sessions")}
-        </h3>
-        <div className="flex gap-2">
-            <Button onClick={handleDownloadReport} variant="outline">
-              <Download className="mr-2 h-4 w-4" />
-              Download Report
-            </Button>
-            <Button onClick={handleAddNew}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Add Session
-            </Button>
-        </div>
-      </div>
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-1">
-          <Card>
-            <CardContent className="p-0">
-              <Calendar
-                mode="single"
-                selected={date}
-                onSelect={(d) => {
-                  setDate(d);
-                  setSearchQuery("");
-                }}
-                className="p-3"
-                modifiers={{
-                  hasSession: sessions.map((session) => session.date),
-                }}
-                modifiersStyles={{
-                  hasSession: {
-                    fontWeight: "bold",
-                    textDecoration: 'underline',
-                    textDecorationColor: 'hsl(var(--primary))',
-                    textUnderlineOffset: '2px',
-                  },
-                }}
-              />
-            </CardContent>
-          </Card>
-        </div>
-        <div className="lg:col-span-2">
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle>{searchQuery ? `Found ${displayedSessions.length} session(s)` : 'Bookings for the day'}</CardTitle>
-              <CardDescription>
-                {searchQuery
-                  ? "Displaying all sessions matching your search query."
-                  : (displayedSessions.length > 0
-                    ? `${displayedSessions.length} session(s) scheduled.`
-                    : "No sessions scheduled for this day.")
-                }
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[400px]">
-                <div className="space-y-4">
-                  {displayedSessions.length > 0 ? (
-                    displayedSessions.map((session) => {
-                      return (
-                        <div
-                          key={session.id}
-                          className="flex items-center justify-between rounded-lg border p-3 hover:bg-secondary/50 cursor-pointer"
-                          onClick={() => handleViewDetails(session)}
-                        >
-                          <div className="flex items-center gap-4">
-                              <Avatar>
-                                <AvatarFallback>{getInitials(session.teacherName)}</AvatarFallback>
-                              </Avatar>
-                            <div>
-                              <p className="font-semibold">{session.programName}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {session.teacherName}
-                              </p>
-                              {searchQuery && (
-                                <p className="text-xs text-muted-foreground/80 mt-1">{format(session.date, 'PPP')}</p>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <Badge variant="outline">{`${session.startTime} - ${session.endTime}`}</Badge>
-                            
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEdit(session);
-                              }}
-                            >
-                              Edit
-                            </Button>
-                          </div>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-10">
-                      <CalendarDays className="h-12 w-12 mb-4" />
-                      <p>{searchQuery ? "No sessions found for your search." : "Select a day to see bookings or add a new one."}</p>
+      
+      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 w-full">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
+          <div className="flex flex-col md:flex-row items-center justify-between border-b pb-0 gap-4">
+            <TabsList className="bg-transparent h-12 p-0 gap-6">
+              <TabsTrigger 
+                value="sessions" 
+                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none h-12 px-1 text-base font-bold transition-all"
+              >
+                <LayoutDashboard className="mr-2 h-4 w-4" /> Bookings
+              </TabsTrigger>
+              
+              {!isAdmin && (
+                  <>
+                    <TabsTrigger 
+                        value="announcements" 
+                        className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none h-12 px-1 text-base font-bold transition-all"
+                    >
+                        <Megaphone className="mr-2 h-4 w-4" /> Bulletins
+                    </TabsTrigger>
+                    <TabsTrigger 
+                        value="workspace" 
+                        className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none h-12 px-1 text-base font-bold transition-all"
+                    >
+                        <PenTool className="mr-2 h-4 w-4" /> Workspace
+                    </TabsTrigger>
+                  </>
+              )}
+
+              <TabsTrigger 
+                value="tools" 
+                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none h-12 px-1 text-base font-bold transition-all"
+              >
+                <Wrench className="mr-2 h-4 w-4" /> {isAdmin ? "Admin Console" : "Tools"}
+              </TabsTrigger>
+            </TabsList>
+
+            <div className="flex items-center gap-2 mb-2">
+               <Badge variant="outline" className="bg-primary/5 border-primary/10 text-primary font-medium">
+                 <Sparkles className="mr-1.5 h-3 w-3" /> System Synchronized
+               </Badge>
+            </div>
+          </div>
+
+          <TabsContent value="sessions" className="space-y-6 outline-none">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight text-foreground">
+                  {searchQuery
+                    ? `Search: "${searchQuery}"`
+                    : date
+                    ? format(date, "MMMM d, yyyy")
+                    : "Operational Overview"}
+                </h1>
+              </div>
+              <div className="flex gap-3">
+                <Button onClick={handleDownloadReport} variant="outline" className="h-10 px-4 font-semibold">
+                  <Download className="mr-2 h-4 w-4" />
+                  Generate Report
+                </Button>
+                <Button onClick={handleAddNew} className="h-10 px-4 bg-primary hover:bg-primary/90 font-bold shadow-sm">
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  New Entry
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+              <div className="lg:col-span-4 xl:col-span-3">
+                <SessionCalendar
+                  date={date}
+                  setDate={setDate}
+                  setSearchQuery={setSearchQuery}
+                  sessions={sessions}
+                />
+              </div>
+
+              <div className="lg:col-span-8 xl:col-span-9">
+                <Card className="border shadow-sm h-full bg-card">
+                  <CardHeader className="border-b bg-muted/5 py-4">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg font-bold">
+                        {searchQuery
+                          ? `Found ${displayedSessions.length} records`
+                          : `Schedule for ${date ? format(date, "EEEE") : "Selected Day"}`}
+                      </CardTitle>
                     </div>
-                  )}
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-      <SessionForm 
-        isOpen={isFormOpen} 
-        setIsOpen={setIsFormOpen}
-        session={selectedSession}
-        sessions={sessions}
-        key={selectedSession?.id || 'new'}
-      />
-      {viewedSession && (
-        <SessionDetailsDialog
-          isOpen={isDetailsOpen}
-          setIsOpen={setIsDetailsOpen}
-          session={viewedSession}
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <SessionList
+                      sessions={displayedSessions}
+                      searchQuery={searchQuery}
+                      date={date}
+                      onViewDetails={handleViewDetails}
+                      onEdit={handleEdit}
+                      onDelete={onDeleteSession}
+                    />
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+
+          {!isAdmin && (
+              <>
+                <TabsContent value="announcements" className="outline-none">
+                    <AnnouncementsTab />
+                </TabsContent>
+
+                <TabsContent value="workspace" className="outline-none">
+                    <StickyNotes />
+                </TabsContent>
+              </>
+          )}
+
+          <TabsContent value="tools" className="outline-none">
+            <FileConverterTab />
+          </TabsContent>
+        </Tabs>
+        
+        <SessionForm 
+          isOpen={isFormOpen} 
+          setIsOpen={setIsFormOpen}
+          session={selectedSession}
+          sessions={sessions}
+          onSave={onSaveSession}
+          key={selectedSession?.id || 'new'}
         />
-      )}
-    </>
+        
+        {viewedSession && (
+          <SessionDetailsDialog
+            isOpen={isDetailsOpen}
+            setIsOpen={setIsDetailsOpen}
+            session={viewedSession}
+          />
+        )}
+      </div>
+    </div>
   );
+}
+
+export function DashboardClient(props: DashboardClientProps) {
+    return (
+        <Suspense fallback={
+            <div className="flex flex-1 items-center justify-center p-20">
+                <div className="h-10 w-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+            </div>
+        }>
+            <DashboardContent {...props} />
+        </Suspense>
+    );
 }
