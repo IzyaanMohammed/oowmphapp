@@ -35,8 +35,7 @@ export function StickyNotes() {
 
   useEffect(() => {
     fetchNotes();
-    const interval = setInterval(fetchNotes, 8000);
-    return () => clearInterval(interval);
+    // Polling removed to prevent server exhaustion.
   }, []);
 
   const addNote = async () => {

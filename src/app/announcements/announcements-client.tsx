@@ -23,15 +23,7 @@ export function AnnouncementsClient({ initialBulletins }: AnnouncementsClientPro
     const [message, setMessage] = useState('');
 
     useEffect(() => {
-        const interval = setInterval(async () => {
-            const data = await getBulletins();
-            setAnnouncements(data.map((b: any) => ({
-                ...b,
-                createdAt: new Date(b.createdAt),
-                updatedAt: b.updatedAt ? new Date(b.updatedAt) : undefined
-            })));
-        }, 10000);
-        return () => clearInterval(interval);
+        // Polling disabled for performance. Initial data is passed via props.
     }, []);
 
     const openNew = () => {

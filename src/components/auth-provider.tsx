@@ -108,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ) : (
         <SidebarProvider defaultOpen={true}>
           <AppSidebar />
-          <SidebarInset className="bg-background/50 backdrop-blur-sm">
+          <SidebarInset className="bg-background/50">
             {isLoginPage ? null : children}
           </SidebarInset>
         </SidebarProvider>

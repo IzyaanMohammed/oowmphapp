@@ -73,21 +73,8 @@ function DashboardContent({ initialSessions }: DashboardClientProps) {
   }, [searchParams, activeTab]);
 
   useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        const fresh = await getSessions();
-        if (fresh && Array.isArray(fresh)) {
-          setSessions(fresh.map((s: any) => ({
-            ...s,
-            date: new Date(s.date),
-            createdAt: s.createdAt ? new Date(s.createdAt) : undefined,
-          })));
-        }
-      } catch (err) {
-        console.error("Polling error:", err);
-      }
-    }, 15000);
-    return () => clearInterval(interval);
+    // Polling removed to prevent server exhaustion and resolve ChunkLoadErrors.
+    // The system now relies on initial data load and optimistic UI updates for responsiveness.
   }, []);
 
   const sessionsForSelectedDate = useMemo(() => sessions.filter((session) =>

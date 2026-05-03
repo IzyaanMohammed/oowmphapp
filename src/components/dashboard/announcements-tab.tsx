@@ -48,8 +48,7 @@ export const AnnouncementsTab = memo(function AnnouncementsTab() {
 
   useEffect(() => {
     fetchBulletins();
-    const interval = setInterval(fetchBulletins, 10000);
-    return () => clearInterval(interval);
+    // Polling removed to prevent server exhaustion.
   }, []);
 
   const openCreate = () => {
