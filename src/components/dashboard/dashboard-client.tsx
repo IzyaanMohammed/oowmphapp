@@ -236,8 +236,8 @@ function DashboardContent({ initialSessions }: DashboardClientProps) {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-              <div className="lg:col-span-4 xl:col-span-3">
+            <div className="flex flex-col lg:flex-row gap-6 items-start">
+              <div className="w-full lg:w-[320px] shrink-0">
                 <SessionCalendar
                   date={date}
                   setDate={setDate}
@@ -246,7 +246,7 @@ function DashboardContent({ initialSessions }: DashboardClientProps) {
                 />
               </div>
 
-              <div className="lg:col-span-8 xl:col-span-9">
+              <div className="flex-1 min-w-0 w-full">
                 <Card className="border shadow-sm h-full bg-card">
                   <CardHeader className="border-b bg-muted/5 py-4">
                     <div className="flex items-center justify-between">
