@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/auth-context";
 import { ShieldCheck, ArrowRight, Lock } from "lucide-react";
 
-const STAFF_CODE = "MPH-2024";
+const STAFF_CODE = "MPH-2026";
 const ADMIN_CODE = "ADMIN123";
 
 export default function LoginPage() {
