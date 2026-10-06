@@ -18,7 +18,7 @@ export function SessionCalendar({
   sessions,
 }: SessionCalendarProps) {
   return (
-    <Card className="border border-zinc-200/80 dark:border-zinc-800 shadow-xs rounded-xl bg-white dark:bg-zinc-900 overflow-hidden">
+    <Card className="border border-zinc-200 dark:border-zinc-800 shadow-none rounded-none bg-white dark:bg-zinc-900 overflow-hidden">
       <CardContent className="p-3">
         <Calendar
           mode="single"
@@ -27,15 +27,15 @@ export function SessionCalendar({
             setDate(d);
             setSearchQuery("");
           }}
-          className="p-1"
+          className="p-1 rounded-none"
           modifiers={{
             hasSession: sessions.map((session) => new Date(session.date)),
           }}
           modifiersStyles={{
             hasSession: {
-              fontWeight: "700",
+              fontWeight: "900",
               textDecoration: "underline",
-              textDecorationColor: "#111111",
+              textDecorationColor: "#000000",
               textUnderlineOffset: "3px",
             },
           }}

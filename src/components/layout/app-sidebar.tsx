@@ -9,7 +9,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { usePathname } from "next/navigation";
-import { Home, LogOut, LayoutDashboard, Megaphone, Wrench, PenTool, Users } from "lucide-react";
+import { LogOut, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/icons";
 import { Button } from "@/components/ui/button";
@@ -19,13 +19,13 @@ export function AppSidebar() {
   const pathname = usePathname();
   
   return (
-    <Sidebar variant="sidebar" className="border-r shadow-none bg-white">
-      <SidebarHeader className="h-16 flex items-center px-6 border-b">
+    <Sidebar variant="sidebar" className="border-r border-zinc-200 shadow-none bg-white">
+      <SidebarHeader className="h-16 flex items-center px-6 border-b border-zinc-200">
         <Link href="/dashboard" className="flex items-center gap-3">
-          <Logo className="h-7 w-7 text-primary" />
+          <Logo className="h-7 w-7 text-black" />
           <div className="flex flex-col">
-            <span className="text-base font-bold tracking-tight text-foreground">
-              MPH Central
+            <span className="text-base font-bold tracking-tight text-black">
+              MPH@OOW
             </span>
           </div>
         </Link>
@@ -37,34 +37,34 @@ export function AppSidebar() {
             <SidebarMenuButton 
               asChild 
               isActive={pathname === "/dashboard" || pathname === "/"} 
-              className="h-10 px-3 rounded-md data-[active=true]:bg-primary/10 data-[active=true]:text-primary"
+              className="h-10 px-3 rounded-none data-[active=true]:bg-black data-[active=true]:text-white font-semibold"
             >
               <Link href="/dashboard">
                 <LayoutDashboard className="h-4 w-4" />
-                <span className="font-semibold">Overview</span>
+                <span>Overview</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>
 
-      <SidebarFooter className="p-4 border-t">
+      <SidebarFooter className="p-4 border-t border-zinc-200">
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-3 px-2">
-            <div className="h-9 w-9 rounded-md bg-primary text-white flex items-center justify-center font-bold text-sm">
+            <div className="h-8 w-8 rounded-none bg-black text-white flex items-center justify-center font-bold text-xs">
               {user?.name?.[0] || 'U'}
             </div>
             <div className="flex flex-col overflow-hidden">
-              <span className="text-sm font-bold truncate leading-none">{user?.name || 'User'}</span>
-              <span className="text-[11px] text-muted-foreground truncate mt-1">{user?.email || 'staff@mph.com'}</span>
+              <span className="text-xs font-bold truncate leading-none text-black">{user?.name || 'User'}</span>
+              <span className="text-[11px] text-zinc-500 truncate mt-1">{user?.email || 'staff@mph.com'}</span>
             </div>
           </div>
           <Button 
             variant="outline" 
             onClick={logout} 
-            className="w-full justify-start h-9 text-xs font-bold hover:bg-destructive hover:text-white transition-all rounded-md"
+            className="w-full justify-start h-9 text-xs font-bold rounded-none border-zinc-300 hover:bg-black hover:text-white transition-all"
           >
-            <LogOut className="mr-2 h-4 w-4" />
+            <LogOut className="mr-2 h-3.5 w-3.5" />
             Logout
           </Button>
         </div>

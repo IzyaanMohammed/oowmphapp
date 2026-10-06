@@ -25,8 +25,8 @@ const shadowsIntoLight = Shadows_Into_Light({
 });
 
 export const metadata: Metadata = {
-  title: 'MPH Booking Central',
-  description: 'Session booking and management for MPH.',
+  title: 'MPH@OOW',
+  description: 'Session booking and management system.',
 };
 
 export default function RootLayout({

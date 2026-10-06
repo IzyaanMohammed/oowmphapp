@@ -64,7 +64,6 @@ export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions
     },
   });
 
-  // Whenever dialog opens, automatically pre-select selectedDate or session date
   useEffect(() => {
     if (isOpen) {
       const targetDate = session?.date 
@@ -130,14 +129,14 @@ export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden border border-zinc-200/80 dark:border-zinc-800 shadow-xl bg-white dark:bg-zinc-900 rounded-2xl">
-        <div className="bg-zinc-50 dark:bg-zinc-900/50 px-6 py-5 border-b border-zinc-100 dark:border-zinc-800">
+      <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden border border-zinc-300 dark:border-zinc-800 shadow-none bg-white dark:bg-zinc-900 rounded-none">
+        <div className="bg-zinc-100 dark:bg-zinc-900 px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+            <DialogTitle className="text-lg font-bold tracking-tight text-black dark:text-white">
               {session ? "Edit Session" : "New Session"}
             </DialogTitle>
             <DialogDescription className="text-xs font-medium text-zinc-500">
-              Schedule and manage academic appointments with precision.
+              Schedule and manage academic appointments.
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -151,9 +150,9 @@ export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions
                   name="programName"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
-                      <FormLabel className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Program Name</FormLabel>
+                      <FormLabel className="text-xs font-bold uppercase tracking-wider text-black dark:text-zinc-300">Program Name</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g. Mathematics 101" className="h-9 px-3 text-xs rounded-md bg-white dark:bg-zinc-950 border-zinc-200 focus:border-zinc-900" {...field} />
+                        <Input placeholder="e.g. Mathematics 101" className="h-9 px-3 text-xs rounded-none bg-white dark:bg-black border-zinc-300 focus:border-black" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -164,9 +163,9 @@ export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions
                   name="teacherName"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
-                      <FormLabel className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Teacher Name</FormLabel>
+                      <FormLabel className="text-xs font-bold uppercase tracking-wider text-black dark:text-zinc-300">Teacher Name</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter name" className="h-9 px-3 text-xs rounded-md bg-white dark:bg-zinc-950 border-zinc-200 focus:border-zinc-900" {...field} />
+                        <Input placeholder="Enter name" className="h-9 px-3 text-xs rounded-none bg-white dark:bg-black border-zinc-300 focus:border-black" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -179,14 +178,14 @@ export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions
                 name="date"
                 render={({ field }) => (
                   <FormItem className="flex flex-col space-y-1">
-                    <FormLabel className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Date</FormLabel>
+                    <FormLabel className="text-xs font-bold uppercase tracking-wider text-black dark:text-zinc-300">Date</FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
                           <Button
                             variant={"outline"}
                             className={cn(
-                              "h-9 px-3 rounded-md bg-white dark:bg-zinc-950 border-zinc-200 focus:border-zinc-900 text-left text-xs font-medium",
+                              "h-9 px-3 rounded-none bg-white dark:bg-black border-zinc-300 focus:border-black text-left text-xs font-medium",
                               !field.value && "text-zinc-400"
                             )}
                           >
@@ -195,16 +194,17 @@ export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions
                             ) : (
                               <span>Pick a date</span>
                             )}
-                            <CalendarIcon className="ml-auto h-3.5 w-3.5 text-zinc-500" />
+                            <CalendarIcon className="ml-auto h-3.5 w-3.5 text-black" />
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0 rounded-xl overflow-hidden shadow-xl border-zinc-200" align="start">
+                      <PopoverContent className="w-auto p-0 rounded-none overflow-hidden shadow-none border-zinc-300" align="start">
                         <Calendar
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
                           initialFocus
+                          className="rounded-none"
                         />
                       </PopoverContent>
                     </Popover>
@@ -219,9 +219,9 @@ export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions
                   name="startTime"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
-                      <FormLabel className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Start Time</FormLabel>
+                      <FormLabel className="text-xs font-bold uppercase tracking-wider text-black dark:text-zinc-300">Start Time</FormLabel>
                       <FormControl>
-                        <Input type="time" className="h-9 px-3 text-xs rounded-md bg-white dark:bg-zinc-950 border-zinc-200 focus:border-zinc-900" {...field} />
+                        <Input type="time" className="h-9 px-3 text-xs rounded-none bg-white dark:bg-black border-zinc-300 focus:border-black" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -232,9 +232,9 @@ export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions
                   name="endTime"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
-                      <FormLabel className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">End Time</FormLabel>
+                      <FormLabel className="text-xs font-bold uppercase tracking-wider text-black dark:text-zinc-300">End Time</FormLabel>
                       <FormControl>
-                        <Input type="time" className="h-9 px-3 text-xs rounded-md bg-white dark:bg-zinc-950 border-zinc-200 focus:border-zinc-900" {...field} />
+                        <Input type="time" className="h-9 px-3 text-xs rounded-none bg-white dark:bg-black border-zinc-300 focus:border-black" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -247,9 +247,9 @@ export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions
                 name="notes"
                 render={({ field }) => (
                   <FormItem className="space-y-1">
-                    <FormLabel className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Notes</FormLabel>
+                    <FormLabel className="text-xs font-bold uppercase tracking-wider text-black dark:text-zinc-300">Notes</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="Session objectives..." className="p-3 text-xs rounded-md bg-white dark:bg-zinc-950 border-zinc-200 focus:border-zinc-900 min-h-[80px] resize-none" {...field} />
+                      <Textarea placeholder="Session objectives..." className="p-3 text-xs rounded-none bg-white dark:bg-black border-zinc-300 focus:border-black min-h-[70px] resize-none" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -257,8 +257,8 @@ export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions
               />
 
               <div className="flex justify-end gap-2 pt-2">
-                <Button type="button" variant="outline" onClick={() => setIsOpen(false)} className="h-9 px-4 text-xs font-semibold rounded-md">Cancel</Button>
-                <Button type="submit" className="h-9 px-5 text-xs font-semibold rounded-md bg-zinc-900 hover:bg-zinc-800 text-white active:scale-[0.98] transition-all">
+                <Button type="button" variant="outline" onClick={() => setIsOpen(false)} className="h-9 px-4 text-xs font-semibold rounded-none border-zinc-300">Cancel</Button>
+                <Button type="submit" className="h-9 px-5 text-xs font-bold rounded-none bg-black hover:bg-zinc-800 text-white border border-black">
                   {session ? "Update Session" : "Create Session"}
                 </Button>
               </div>

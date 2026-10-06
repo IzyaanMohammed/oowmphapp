@@ -1,7 +1,7 @@
 "use client";
 
 import type { Session } from "@/lib/types";
-import { useState, useMemo, useEffect, useCallback, Suspense } from "react";
+import { useState, useMemo, useCallback, Suspense } from "react";
 import { Button } from "../ui/button";
 import { PlusCircle, Download, LayoutDashboard, Megaphone, Wrench, PenTool } from "lucide-react";
 import {
@@ -25,7 +25,6 @@ import { saveSession, deleteSession } from "@/app/actions";
 import { AppHeader } from "../layout/app-header";
 import { useAuth } from "@/context/auth-context";
 import { useSearchParams } from "next/navigation";
-import { Logo } from "@/components/icons";
 
 interface DashboardClientProps {
   initialSessions: Session[];
@@ -153,7 +152,7 @@ function DashboardContent({ initialSessions }: DashboardClientProps) {
         s.teacherName,
         s.notes || ''
       ]),
-      headStyles: { fillColor: [17, 17, 17] },
+      headStyles: { fillColor: [0, 0, 0] },
       styles: { cellPadding: 3, fontSize: 10 },
     });
 
@@ -161,17 +160,17 @@ function DashboardContent({ initialSessions }: DashboardClientProps) {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#fcfcfc] dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
+    <div className="flex flex-col min-h-screen bg-white dark:bg-black text-black dark:text-white">
       <AppHeader searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
 
-      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 w-full flex-1 flex flex-col justify-between">
+      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 w-full flex-1 flex flex-col justify-between">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-          {/* Cal.com nav-pill-group layout */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-zinc-200/80 dark:border-zinc-800 pb-4">
-            <TabsList className="bg-zinc-100/90 dark:bg-zinc-800/80 p-1.5 rounded-full inline-flex items-center gap-1 border border-zinc-200/60 dark:border-zinc-700/60 h-auto">
+          {/* Black & White sharp tab switcher */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-zinc-200 dark:border-zinc-800 pb-4">
+            <TabsList className="bg-zinc-100 dark:bg-zinc-900 p-1 rounded-none inline-flex items-center gap-1 border border-zinc-300 dark:border-zinc-800 h-auto">
               <TabsTrigger 
                 value="sessions" 
-                className="rounded-full px-4 py-1.5 text-xs font-semibold text-zinc-600 dark:text-zinc-400 data-[state=active]:bg-zinc-900 data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-zinc-900 data-[state=active]:shadow-sm transition-all duration-200 flex items-center gap-1.5"
+                className="rounded-none px-4 py-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-300 data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black transition-all flex items-center gap-1.5"
               >
                 <LayoutDashboard className="h-3.5 w-3.5" /> Bookings
               </TabsTrigger>
@@ -180,13 +179,13 @@ function DashboardContent({ initialSessions }: DashboardClientProps) {
                 <>
                   <TabsTrigger 
                     value="announcements" 
-                    className="rounded-full px-4 py-1.5 text-xs font-semibold text-zinc-600 dark:text-zinc-400 data-[state=active]:bg-zinc-900 data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-zinc-900 data-[state=active]:shadow-sm transition-all duration-200 flex items-center gap-1.5"
+                    className="rounded-none px-4 py-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-300 data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black transition-all flex items-center gap-1.5"
                   >
                     <Megaphone className="h-3.5 w-3.5" /> Bulletins
                   </TabsTrigger>
                   <TabsTrigger 
                     value="workspace" 
-                    className="rounded-full px-4 py-1.5 text-xs font-semibold text-zinc-600 dark:text-zinc-400 data-[state=active]:bg-zinc-900 data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-zinc-900 data-[state=active]:shadow-sm transition-all duration-200 flex items-center gap-1.5"
+                    className="rounded-none px-4 py-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-300 data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black transition-all flex items-center gap-1.5"
                   >
                     <PenTool className="h-3.5 w-3.5" /> Workspace
                   </TabsTrigger>
@@ -195,7 +194,7 @@ function DashboardContent({ initialSessions }: DashboardClientProps) {
 
               <TabsTrigger 
                 value="tools" 
-                className="rounded-full px-4 py-1.5 text-xs font-semibold text-zinc-600 dark:text-zinc-400 data-[state=active]:bg-zinc-900 data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-zinc-900 data-[state=active]:shadow-sm transition-all duration-200 flex items-center gap-1.5"
+                className="rounded-none px-4 py-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-300 data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black transition-all flex items-center gap-1.5"
               >
                 <Wrench className="h-3.5 w-3.5" /> {isAdmin ? "Admin Console" : "Tools"}
               </TabsTrigger>
@@ -205,7 +204,7 @@ function DashboardContent({ initialSessions }: DashboardClientProps) {
           <TabsContent value="sessions" className="space-y-6 outline-none transition-opacity duration-150">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-black dark:text-white">
                   {searchQuery
                     ? `Search: "${searchQuery}"`
                     : date
@@ -217,11 +216,11 @@ function DashboardContent({ initialSessions }: DashboardClientProps) {
                 </p>
               </div>
               <div className="flex gap-3">
-                <Button onClick={handleDownloadReport} variant="outline" className="h-9 px-4 text-xs font-semibold border-zinc-200 hover:bg-zinc-100 rounded-md">
+                <Button onClick={handleDownloadReport} variant="outline" className="h-9 px-4 text-xs font-semibold border-zinc-300 hover:bg-zinc-100 rounded-none">
                   <Download className="mr-2 h-3.5 w-3.5" />
                   Generate Report
                 </Button>
-                <Button onClick={handleAddNew} className="h-9 px-4 bg-zinc-900 hover:bg-zinc-800 text-white font-semibold text-xs rounded-md shadow-xs transition-all active:scale-[0.98]">
+                <Button onClick={handleAddNew} className="h-9 px-4 bg-black hover:bg-zinc-800 text-white font-semibold text-xs rounded-none shadow-none transition-all border border-black">
                   <PlusCircle className="mr-2 h-3.5 w-3.5" />
                   New Entry
                 </Button>
@@ -239,10 +238,10 @@ function DashboardContent({ initialSessions }: DashboardClientProps) {
               </div>
 
               <div className="flex-1 min-w-0 w-full">
-                <Card className="border border-zinc-200/80 dark:border-zinc-800 shadow-xs rounded-xl bg-white dark:bg-zinc-900">
-                  <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 py-3.5 px-5">
+                <Card className="border border-zinc-200 dark:border-zinc-800 shadow-none rounded-none bg-white dark:bg-zinc-900">
+                  <CardHeader className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 py-3.5 px-5">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                      <CardTitle className="text-base font-semibold tracking-tight text-black dark:text-white">
                         {searchQuery
                           ? `Found ${displayedSessions.length} records`
                           : `Schedule for ${date ? format(date, "EEEE") : "Selected Day"}`}
@@ -281,18 +280,7 @@ function DashboardContent({ initialSessions }: DashboardClientProps) {
           </TabsContent>
         </Tabs>
 
-        {/* Cal.com Dark Footer (surface-dark: #101010) visually closes the page */}
-        <footer className="mt-16 bg-[#101010] text-zinc-400 rounded-2xl p-6 sm:p-8 border border-zinc-800/80 shadow-xl flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg bg-zinc-800 flex items-center justify-center text-white border border-zinc-700">
-              <Logo className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <div className="text-sm font-bold text-white tracking-tight">MPH Central</div>
-              <div className="text-xs text-zinc-500 font-medium">Multi-Tier Portal System · v4.2</div>
-            </div>
-          </div>
-        </footer>
+        {/* Footer block removed per user request */}
 
         <SessionForm 
           isOpen={isFormOpen} 
@@ -320,7 +308,7 @@ export function DashboardClient(props: DashboardClientProps) {
   return (
     <Suspense fallback={
       <div className="flex flex-1 items-center justify-center p-20">
-        <div className="h-8 w-8 border-2 border-zinc-900 border-t-transparent rounded-full animate-spin" />
+        <div className="h-8 w-8 border-2 border-black border-t-transparent rounded-none animate-spin" />
       </div>
     }>
       <DashboardContent {...props} />
