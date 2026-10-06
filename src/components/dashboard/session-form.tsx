@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -34,6 +35,7 @@ interface SessionFormProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
   session: Session | null;
+  selectedDate?: Date;
   sessions: Session[];
   onSave?: (session: Session) => void;
 }
@@ -47,7 +49,7 @@ const formSchema = z.object({
   notes: z.string().optional(),
 });
 
-export function SessionForm({ isOpen, setIsOpen, session, sessions, onSave }: SessionFormProps) {
+export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions, onSave }: SessionFormProps) {
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -55,12 +57,30 @@ export function SessionForm({ isOpen, setIsOpen, session, sessions, onSave }: Se
     defaultValues: {
       programName: session?.programName || "",
       teacherName: session?.teacherName || "",
-      date: session?.date ? new Date(session.date) : new Date(),
+      date: session?.date ? new Date(session.date) : (selectedDate ? new Date(selectedDate) : new Date()),
       startTime: session?.startTime || "",
       endTime: session?.endTime || "",
       notes: session?.notes || "",
     },
   });
+
+  // Whenever dialog opens, automatically pre-select selectedDate or session date
+  useEffect(() => {
+    if (isOpen) {
+      const targetDate = session?.date 
+        ? new Date(session.date) 
+        : (selectedDate ? new Date(selectedDate) : new Date());
+      
+      form.reset({
+        programName: session?.programName || "",
+        teacherName: session?.teacherName || "",
+        date: targetDate,
+        startTime: session?.startTime || "",
+        endTime: session?.endTime || "",
+        notes: session?.notes || "",
+      });
+    }
+  }, [isOpen, session, selectedDate, form]);
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     const newStart = parseInt(values.startTime.replace(':', ''), 10);
@@ -102,39 +122,38 @@ export function SessionForm({ isOpen, setIsOpen, session, sessions, onSave }: Se
     if (onSave) onSave(sessionData);
 
     toast({
-        title: session ? "Session Updated" : "Session Created",
-        description: `The session "${values.programName}" has been saved successfully.`,
+      title: session ? "Session Updated" : "Session Created",
+      description: `The session "${values.programName}" has been saved successfully.`,
     });
     setIsOpen(false);
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="sm:max-w-[550px] p-0 overflow-hidden border-none shadow-2xl bg-card/95 backdrop-blur-xl">
-        <div className="bg-primary/10 px-8 py-6 border-b border-primary/10 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 blur-3xl rounded-full -mr-16 -mt-16" />
-          <DialogHeader className="relative z-10">
-            <DialogTitle className="text-3xl font-black tracking-tight">
+      <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden border border-zinc-200/80 dark:border-zinc-800 shadow-xl bg-white dark:bg-zinc-900 rounded-2xl">
+        <div className="bg-zinc-50 dark:bg-zinc-900/50 px-6 py-5 border-b border-zinc-100 dark:border-zinc-800">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
               {session ? "Edit Session" : "New Session"}
             </DialogTitle>
-            <DialogDescription className="text-base font-medium text-primary/70">
+            <DialogDescription className="text-xs font-medium text-zinc-500">
               Schedule and manage academic appointments with precision.
             </DialogDescription>
           </DialogHeader>
         </div>
 
-        <div className="p-8">
+        <div className="p-6">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="programName"
                   render={({ field }) => (
-                    <FormItem className="space-y-1.5">
-                      <FormLabel className="text-xs font-black uppercase tracking-widest text-muted-foreground">Program Name</FormLabel>
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Program Name</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g. Mathematics 101" className="h-12 px-4 rounded-xl bg-muted/30 border-2 border-transparent focus:border-primary/50 focus:bg-background transition-all shadow-inner" {...field} />
+                        <Input placeholder="e.g. Mathematics 101" className="h-9 px-3 text-xs rounded-md bg-white dark:bg-zinc-950 border-zinc-200 focus:border-zinc-900" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -144,10 +163,10 @@ export function SessionForm({ isOpen, setIsOpen, session, sessions, onSave }: Se
                   control={form.control}
                   name="teacherName"
                   render={({ field }) => (
-                    <FormItem className="space-y-1.5">
-                      <FormLabel className="text-xs font-black uppercase tracking-widest text-muted-foreground">Teacher Name</FormLabel>
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Teacher Name</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter name" className="h-12 px-4 rounded-xl bg-muted/30 border-2 border-transparent focus:border-primary/50 focus:bg-background transition-all shadow-inner" {...field} />
+                        <Input placeholder="Enter name" className="h-9 px-3 text-xs rounded-md bg-white dark:bg-zinc-950 border-zinc-200 focus:border-zinc-900" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -159,16 +178,16 @@ export function SessionForm({ isOpen, setIsOpen, session, sessions, onSave }: Se
                 control={form.control}
                 name="date"
                 render={({ field }) => (
-                  <FormItem className="flex flex-col space-y-1.5">
-                    <FormLabel className="text-xs font-black uppercase tracking-widest text-muted-foreground">Date</FormLabel>
+                  <FormItem className="flex flex-col space-y-1">
+                    <FormLabel className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Date</FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
                           <Button
                             variant={"outline"}
                             className={cn(
-                              "h-12 px-4 rounded-xl bg-muted/30 border-2 border-transparent focus:border-primary/50 focus:bg-background transition-all text-left font-medium shadow-inner",
-                              !field.value && "text-muted-foreground"
+                              "h-9 px-3 rounded-md bg-white dark:bg-zinc-950 border-zinc-200 focus:border-zinc-900 text-left text-xs font-medium",
+                              !field.value && "text-zinc-400"
                             )}
                           >
                             {field.value ? (
@@ -176,11 +195,11 @@ export function SessionForm({ isOpen, setIsOpen, session, sessions, onSave }: Se
                             ) : (
                               <span>Pick a date</span>
                             )}
-                            <CalendarIcon className="ml-auto h-4 w-4 text-primary" />
+                            <CalendarIcon className="ml-auto h-3.5 w-3.5 text-zinc-500" />
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0 rounded-2xl overflow-hidden shadow-2xl border-none" align="start">
+                      <PopoverContent className="w-auto p-0 rounded-xl overflow-hidden shadow-xl border-zinc-200" align="start">
                         <Calendar
                           mode="single"
                           selected={field.value}
@@ -194,28 +213,28 @@ export function SessionForm({ isOpen, setIsOpen, session, sessions, onSave }: Se
                 )}
               />
 
-              <div className="grid grid-cols-2 gap-6">
-                 <FormField
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
                   control={form.control}
                   name="startTime"
                   render={({ field }) => (
-                    <FormItem className="space-y-1.5">
-                      <FormLabel className="text-xs font-black uppercase tracking-widest text-muted-foreground">Start Time</FormLabel>
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Start Time</FormLabel>
                       <FormControl>
-                        <Input type="time" className="h-12 px-4 rounded-xl bg-muted/30 border-2 border-transparent focus:border-primary/50 focus:bg-background transition-all shadow-inner" {...field} />
+                        <Input type="time" className="h-9 px-3 text-xs rounded-md bg-white dark:bg-zinc-950 border-zinc-200 focus:border-zinc-900" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                 <FormField
+                <FormField
                   control={form.control}
                   name="endTime"
                   render={({ field }) => (
-                    <FormItem className="space-y-1.5">
-                      <FormLabel className="text-xs font-black uppercase tracking-widest text-muted-foreground">End Time</FormLabel>
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">End Time</FormLabel>
                       <FormControl>
-                        <Input type="time" className="h-12 px-4 rounded-xl bg-muted/30 border-2 border-transparent focus:border-primary/50 focus:bg-background transition-all shadow-inner" {...field} />
+                        <Input type="time" className="h-9 px-3 text-xs rounded-md bg-white dark:bg-zinc-950 border-zinc-200 focus:border-zinc-900" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -223,25 +242,25 @@ export function SessionForm({ isOpen, setIsOpen, session, sessions, onSave }: Se
                 />
               </div>
 
-               <FormField
+              <FormField
                 control={form.control}
                 name="notes"
                 render={({ field }) => (
-                  <FormItem className="space-y-1.5">
-                    <FormLabel className="text-xs font-black uppercase tracking-widest text-muted-foreground">Notes</FormLabel>
+                  <FormItem className="space-y-1">
+                    <FormLabel className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Notes</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="Session objectives..." className="p-4 rounded-xl bg-muted/30 border-2 border-transparent focus:border-primary/50 focus:bg-background transition-all min-h-[100px] resize-none shadow-inner" {...field} />
+                      <Textarea placeholder="Session objectives..." className="p-3 text-xs rounded-md bg-white dark:bg-zinc-950 border-zinc-200 focus:border-zinc-900 min-h-[80px] resize-none" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
-              <div className="flex justify-end gap-4 pt-4">
-                  <Button type="button" variant="ghost" onClick={() => setIsOpen(false)} className="h-12 px-6 rounded-xl font-bold">Cancel</Button>
-                  <Button type="submit" className="h-12 px-8 rounded-xl bg-primary hover:bg-primary/90 font-bold shadow-lg shadow-primary/20">
-                    {session ? "Update Session" : "Create Session"}
-                  </Button>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button type="button" variant="outline" onClick={() => setIsOpen(false)} className="h-9 px-4 text-xs font-semibold rounded-md">Cancel</Button>
+                <Button type="submit" className="h-9 px-5 text-xs font-semibold rounded-md bg-zinc-900 hover:bg-zinc-800 text-white active:scale-[0.98] transition-all">
+                  {session ? "Update Session" : "Create Session"}
+                </Button>
               </div>
             </form>
           </Form>

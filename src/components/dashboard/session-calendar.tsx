@@ -18,8 +18,8 @@ export function SessionCalendar({
   sessions,
 }: SessionCalendarProps) {
   return (
-    <Card className="border-none shadow-lg bg-card/50 backdrop-blur-sm overflow-hidden glass">
-      <CardContent className="p-0">
+    <Card className="border border-zinc-200/80 dark:border-zinc-800 shadow-xs rounded-xl bg-white dark:bg-zinc-900 overflow-hidden">
+      <CardContent className="p-3">
         <Calendar
           mode="single"
           selected={date}
@@ -27,16 +27,16 @@ export function SessionCalendar({
             setDate(d);
             setSearchQuery("");
           }}
-          className="p-4"
+          className="p-1"
           modifiers={{
-            hasSession: sessions.map((session) => session.date),
+            hasSession: sessions.map((session) => new Date(session.date)),
           }}
           modifiersStyles={{
             hasSession: {
-              fontWeight: "bold",
+              fontWeight: "700",
               textDecoration: "underline",
-              textDecorationColor: "hsl(var(--primary))",
-              textUnderlineOffset: "4px",
+              textDecorationColor: "#111111",
+              textUnderlineOffset: "3px",
             },
           }}
         />

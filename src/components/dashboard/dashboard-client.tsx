@@ -3,7 +3,7 @@
 import type { Session } from "@/lib/types";
 import { useState, useMemo, useEffect, useCallback, Suspense } from "react";
 import { Button } from "../ui/button";
-import { PlusCircle, Download, LayoutDashboard, Megaphone, Wrench, PenTool, Sparkles } from "lucide-react";
+import { PlusCircle, Download, LayoutDashboard, Megaphone, Wrench, PenTool } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -11,7 +11,6 @@ import {
   CardTitle,
 } from "../ui/card";
 import { isSameDay, format, isSameMonth } from "date-fns";
-import { Badge } from "../ui/badge";
 import { SessionForm } from "./session-form";
 import { SessionDetailsDialog } from "./session-details";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
@@ -25,7 +24,7 @@ import autoTable from 'jspdf-autotable';
 import { saveSession, deleteSession } from "@/app/actions";
 import { AppHeader } from "../layout/app-header";
 import { useAuth } from "@/context/auth-context";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Logo } from "@/components/icons";
 
 interface DashboardClientProps {
@@ -35,7 +34,6 @@ interface DashboardClientProps {
 function DashboardContent({ initialSessions }: DashboardClientProps) {
   const { user, role } = useAuth();
   const searchParams = useSearchParams();
-  const router = useRouter();
 
   const [sessions, setSessions] = useState<Session[]>(() => {
     return (initialSessions || []).map((s: any) => {
@@ -52,7 +50,6 @@ function DashboardContent({ initialSessions }: DashboardClientProps) {
     });
   });
 
-  // Default active tab from searchParams if present
   const [activeTab, setActiveTab] = useState<string>(() => {
     const tabParam = searchParams?.get('tab');
     return tabParam || "sessions";
@@ -67,7 +64,6 @@ function DashboardContent({ initialSessions }: DashboardClientProps) {
 
   const isAdmin = role === 'admin';
 
-  // Instant tab change handler without blocking page router transitions
   const handleTabChange = useCallback((value: string) => {
     setActiveTab(value);
     if (typeof window !== 'undefined') {
@@ -204,12 +200,6 @@ function DashboardContent({ initialSessions }: DashboardClientProps) {
                 <Wrench className="h-3.5 w-3.5" /> {isAdmin ? "Admin Console" : "Tools"}
               </TabsTrigger>
             </TabsList>
-
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-400 rounded-full px-3 py-1 text-[11px] font-semibold flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" /> System Synchronized
-              </Badge>
-            </div>
           </div>
 
           <TabsContent value="sessions" className="space-y-6 outline-none transition-opacity duration-150">
@@ -292,7 +282,7 @@ function DashboardContent({ initialSessions }: DashboardClientProps) {
         </Tabs>
 
         {/* Cal.com Dark Footer (surface-dark: #101010) visually closes the page */}
-        <footer className="mt-16 bg-[#101010] text-zinc-400 rounded-2xl p-6 sm:p-8 border border-zinc-800/80 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+        <footer className="mt-16 bg-[#101010] text-zinc-400 rounded-2xl p-6 sm:p-8 border border-zinc-800/80 shadow-xl flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 rounded-lg bg-zinc-800 flex items-center justify-center text-white border border-zinc-700">
               <Logo className="h-5 w-5 text-white" />
@@ -302,20 +292,16 @@ function DashboardContent({ initialSessions }: DashboardClientProps) {
               <div className="text-xs text-zinc-500 font-medium">Multi-Tier Portal System · v4.2</div>
             </div>
           </div>
-
-          {/* Subtle Attribution: "Made by Mohammed Izyaan" */}
-          <div className="text-xs text-zinc-500 font-medium tracking-wide flex items-center gap-1.5">
-            Made by Mohammed Izyaan
-          </div>
         </footer>
 
         <SessionForm 
           isOpen={isFormOpen} 
           setIsOpen={setIsFormOpen}
           session={selectedSession}
+          selectedDate={date}
           sessions={sessions}
           onSave={onSaveSession}
-          key={selectedSession?.id || 'new'}
+          key={selectedSession?.id || (date ? date.toISOString() : 'new')}
         />
 
         {viewedSession && (
