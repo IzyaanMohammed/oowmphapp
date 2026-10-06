@@ -2,7 +2,7 @@
 
 import type { Announcement } from "@/lib/types";
 import { format } from "date-fns";
-import { User, Calendar, Pencil, Trash2, Sparkles } from "lucide-react";
+import { User, Calendar, Pencil, Trash2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { ScrollArea } from "../ui/scroll-area";
@@ -22,58 +22,55 @@ export function AnnouncementList({
 }: AnnouncementListProps) {
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-60">
-        <div className="relative">
-          <div className="h-12 w-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin"></div>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="h-2 w-2 bg-primary rounded-full animate-ping"></div>
-          </div>
-        </div>
+      <div className="flex flex-col gap-4 py-8">
+        {[1, 2].map((i) => (
+          <div key={i} className="h-32 rounded-xl bg-zinc-100 dark:bg-zinc-800/50 animate-pulse border border-zinc-200/50 dark:border-zinc-800" />
+        ))}
       </div>
     );
   }
 
   return (
-    <ScrollArea className="h-[600px] pr-4">
+    <ScrollArea className="h-[550px] pr-2">
       {announcements.length > 0 ? (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {announcements.map((a: Announcement) => {
             const isMock = a.id.startsWith('mock-');
             return (
               <div 
                 key={a.id} 
-                className={`group relative rounded-2xl border bg-card p-6 shadow-sm hover:shadow-xl hover:border-primary/30 transition-all duration-500 animate-in fade-in slide-in-from-bottom-4 glass ${isMock ? 'border-dashed opacity-80' : 'border-border/50'}`}
+                className={`group relative rounded-xl border bg-white dark:bg-zinc-900/90 p-5 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-200 ${isMock ? 'border-dashed opacity-80' : 'border-zinc-200/80 dark:border-zinc-800'}`}
               >
-                <div className="flex items-start justify-between gap-4 mb-4">
-                  <div className="space-y-2">
+                <div className="flex items-start justify-between gap-4 mb-3">
+                  <div className="space-y-1.5">
                     <div className="flex items-center gap-2">
-                       <h3 className="text-xl font-bold tracking-tight text-foreground group-hover:text-primary transition-colors">{a.title}</h3>
-                       {isMock && <Badge variant="secondary" className="text-[10px] h-4">Demo</Badge>}
+                      <h3 className="text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-100 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors">{a.title}</h3>
+                      {isMock && <Badge variant="secondary" className="text-[10px] h-4 rounded-full">Demo</Badge>}
                     </div>
-                    <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-muted-foreground">
-                      <span className="flex items-center gap-1.5 bg-muted/50 px-2.5 py-1 rounded-lg">
-                        <User className="h-3.5 w-3.5 text-primary/70" /> {a.authorName}
+                    <div className="flex flex-wrap items-center gap-3 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                      <span className="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800/60 px-2.5 py-0.5 rounded-full text-zinc-700 dark:text-zinc-300">
+                        <User className="h-3 w-3 text-zinc-500" /> {a.authorName}
                       </span>
-                      <span className="flex items-center gap-1.5 bg-muted/50 px-2.5 py-1 rounded-lg">
-                        <Calendar className="h-3.5 w-3.5 text-primary/70" /> {a.createdAt ? format(a.createdAt, "PPP") : "Just now"}
+                      <span className="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800/60 px-2.5 py-0.5 rounded-full text-zinc-700 dark:text-zinc-300">
+                        <Calendar className="h-3 w-3 text-zinc-500" /> {a.createdAt ? format(a.createdAt, "PPP") : "Just now"}
                       </span>
                       {a.updatedAt && (
-                        <Badge variant="outline" className="text-[10px] h-5 py-0 font-normal border-primary/20 text-primary bg-primary/5">Edited</Badge>
+                        <Badge variant="outline" className="text-[10px] h-4 font-medium border-zinc-200 text-zinc-600 rounded-full">Edited</Badge>
                       )}
                     </div>
                   </div>
                   {!isMock && (
-                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
-                      <Button size="icon" variant="ghost" onClick={() => onEdit(a)} className="h-10 w-10 rounded-xl hover:bg-primary/10 hover:text-primary border border-transparent hover:border-primary/20">
-                        <Pencil className="h-4 w-4" />
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button size="icon" variant="ghost" onClick={() => onEdit(a)} className="h-8 w-8 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600">
+                        <Pencil className="h-3.5 w-3.5" />
                       </Button>
-                      <Button size="icon" variant="ghost" onClick={() => onDelete(a.id)} className="h-10 w-10 rounded-xl hover:bg-destructive/10 hover:text-destructive border border-transparent hover:border-destructive/20">
-                        <Trash2 className="h-4 w-4" />
+                      <Button size="icon" variant="ghost" onClick={() => onDelete(a.id)} className="h-8 w-8 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/50 text-red-600">
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                   )}
                 </div>
-                <div className="text-base leading-relaxed text-foreground/80 whitespace-pre-wrap pl-4 border-l-2 border-primary/10 group-hover:border-primary/30 transition-colors">
+                <div className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap pl-3.5 border-l-2 border-zinc-200 dark:border-zinc-700">
                   {a.message}
                 </div>
               </div>
@@ -81,9 +78,9 @@ export function AnnouncementList({
           })}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center h-80 text-center space-y-4 border-2 border-dashed rounded-3xl p-12 bg-muted/5 border-muted-foreground/10">
-          <p className="text-xl font-bold text-foreground/70">No bulletins posted</p>
-          <p className="text-sm text-muted-foreground mt-2 leading-relaxed">The announcement board is currently clear.</p>
+        <div className="flex flex-col items-center justify-center h-64 text-center space-y-3 border border-dashed rounded-xl p-8 bg-zinc-50/50 dark:bg-zinc-900/30 border-zinc-200/80">
+          <p className="text-base font-semibold text-zinc-700 dark:text-zinc-300">No bulletins posted</p>
+          <p className="text-xs text-zinc-500 max-w-sm">The announcement board is clear. Click "New Post" above to publish an announcement.</p>
         </div>
       )}
     </ScrollArea>

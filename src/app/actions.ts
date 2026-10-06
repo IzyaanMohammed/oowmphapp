@@ -11,18 +11,21 @@ export async function getSessions() {
 
 export async function saveSession(session: any) {
   const db = await readDb();
-  const index = db.sessions.findIndex((s: any) => s.id === session.id);
+  const isTempId = !session.id || String(session.id).startsWith('local-');
+  const targetId = isTempId ? uuidv4() : session.id;
+
+  const index = db.sessions.findIndex((s: any) => s.id === session.id || (isTempId && s.id === targetId));
   
   const sessionToSave = {
     ...session,
-    id: session.id || uuidv4(),
+    id: targetId,
     updatedAt: new Date().toISOString(),
   };
 
   if (index > -1) {
     db.sessions[index] = sessionToSave;
   } else {
-    db.sessions.unshift({ ...sessionToSave, createdAt: new Date().toISOString() });
+    db.sessions.unshift({ ...sessionToSave, createdAt: session.createdAt ? new Date(session.createdAt).toISOString() : new Date().toISOString() });
   }
   
   await writeDb(db);
@@ -44,18 +47,21 @@ export async function getBulletins() {
 
 export async function saveBulletin(bulletin: any) {
   const db = await readDb();
-  const index = db.bulletins.findIndex((b: any) => b.id === bulletin.id);
+  const isTempId = !bulletin.id || String(bulletin.id).startsWith('local-');
+  const targetId = isTempId ? uuidv4() : bulletin.id;
+
+  const index = db.bulletins.findIndex((b: any) => b.id === bulletin.id || (isTempId && b.id === targetId));
   
   const bulletinToSave = {
     ...bulletin,
-    id: bulletin.id || uuidv4(),
+    id: targetId,
     updatedAt: new Date().toISOString(),
   };
 
   if (index > -1) {
     db.bulletins[index] = bulletinToSave;
   } else {
-    db.bulletins.unshift({ ...bulletinToSave, createdAt: new Date().toISOString() });
+    db.bulletins.unshift({ ...bulletinToSave, createdAt: bulletin.createdAt ? new Date(bulletin.createdAt).toISOString() : new Date().toISOString() });
   }
   
   await writeDb(db);
@@ -77,18 +83,21 @@ export async function getNotes() {
 
 export async function saveNote(note: any) {
   const db = await readDb();
-  const index = db.notes.findIndex((n: any) => n.id === note.id);
+  const isTempId = !note.id || String(note.id).startsWith('local-');
+  const targetId = isTempId ? uuidv4() : note.id;
+
+  const index = db.notes.findIndex((n: any) => n.id === note.id || (isTempId && n.id === targetId));
   
   const noteToSave = {
     ...note,
-    id: note.id || uuidv4(),
+    id: targetId,
     updatedAt: new Date().toISOString(),
   };
 
   if (index > -1) {
     db.notes[index] = noteToSave;
   } else {
-    db.notes.unshift({ ...noteToSave, createdAt: new Date().toISOString() });
+    db.notes.unshift({ ...noteToSave, createdAt: note.createdAt ? new Date(note.createdAt).toISOString() : new Date().toISOString() });
   }
   
   await writeDb(db);
