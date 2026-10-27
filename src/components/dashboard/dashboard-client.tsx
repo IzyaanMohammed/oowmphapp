@@ -3,7 +3,7 @@
 import type { Session } from "@/lib/types";
 import { useState, useMemo, useCallback, Suspense } from "react";
 import { Button } from "../ui/button";
-import { PlusCircle, Download, LayoutDashboard, Megaphone, Wrench, PenTool } from "lucide-react";
+import { PlusCircle, Download, LayoutDashboard, Megaphone } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -15,8 +15,6 @@ import { SessionForm } from "./session-form";
 import { SessionDetailsDialog } from "./session-details";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
 import { AnnouncementsTab } from "./announcements-tab";
-import { FileConverterTab } from "./file-converter-tab";
-import { StickyNotes } from "./sticky-notes";
 import { SessionList } from "./session-list";
 import { SessionCalendar } from "./session-calendar";
 import jsPDF from "jspdf";
@@ -51,7 +49,8 @@ function DashboardContent({ initialSessions }: DashboardClientProps) {
 
   const [activeTab, setActiveTab] = useState<string>(() => {
     const tabParam = searchParams?.get('tab');
-    return tabParam || "sessions";
+    if (tabParam === 'announcements') return 'announcements';
+    return "sessions";
   });
 
   const [date, setDate] = useState<Date | undefined>(new Date());
@@ -176,28 +175,13 @@ function DashboardContent({ initialSessions }: DashboardClientProps) {
               </TabsTrigger>
               
               {!isAdmin && (
-                <>
-                  <TabsTrigger 
-                    value="announcements" 
-                    className="rounded-none px-4 py-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-300 data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black transition-all flex items-center gap-1.5"
-                  >
-                    <Megaphone className="h-3.5 w-3.5" /> Bulletins
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="workspace" 
-                    className="rounded-none px-4 py-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-300 data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black transition-all flex items-center gap-1.5"
-                  >
-                    <PenTool className="h-3.5 w-3.5" /> Workspace
-                  </TabsTrigger>
-                </>
+                <TabsTrigger 
+                  value="announcements" 
+                  className="rounded-none px-4 py-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-300 data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black transition-all flex items-center gap-1.5"
+                >
+                  <Megaphone className="h-3.5 w-3.5" /> Bulletins
+                </TabsTrigger>
               )}
-
-              <TabsTrigger 
-                value="tools" 
-                className="rounded-none px-4 py-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-300 data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black transition-all flex items-center gap-1.5"
-              >
-                <Wrench className="h-3.5 w-3.5" /> {isAdmin ? "Admin Console" : "Tools"}
-              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -264,20 +248,10 @@ function DashboardContent({ initialSessions }: DashboardClientProps) {
           </TabsContent>
 
           {!isAdmin && (
-            <>
-              <TabsContent value="announcements" className="outline-none transition-opacity duration-150">
-                <AnnouncementsTab />
-              </TabsContent>
-
-              <TabsContent value="workspace" className="outline-none transition-opacity duration-150">
-                <StickyNotes />
-              </TabsContent>
-            </>
+            <TabsContent value="announcements" className="outline-none transition-opacity duration-150">
+              <AnnouncementsTab />
+            </TabsContent>
           )}
-
-          <TabsContent value="tools" className="outline-none transition-opacity duration-150">
-            <FileConverterTab />
-          </TabsContent>
         </Tabs>
 
         {/* Footer block removed per user request */}

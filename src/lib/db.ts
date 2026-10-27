@@ -7,16 +7,30 @@ export interface DbSchema {
   notes: any[];
 }
 
-// Support Vercel KV / Upstash REST API credentials under all common environment variable names
-const KV_REST_API_URL = 
-  process.env.KV_REST_API_URL || 
-  process.env.UPSTASH_REDIS_REST_URL ||
-  process.env.VERCEL_KV_REST_API_URL;
+// Support Vercel KV / Upstash REST API credentials under standard or custom environment variable names
+const getKvUrl = () => {
+  if (process.env.KV_REST_API_URL) return process.env.KV_REST_API_URL;
+  if (process.env.UPSTASH_REDIS_REST_URL) return process.env.UPSTASH_REDIS_REST_URL;
+  if (process.env.VERCEL_KV_REST_API_URL) return process.env.VERCEL_KV_REST_API_URL;
+  
+  // Dynamic search for any key ending with REST_API_URL or REDIS_REST_URL
+  const foundKey = Object.keys(process.env).find(k => k.endsWith('REST_API_URL') || k.endsWith('REDIS_REST_URL') || k.endsWith('REST_URL'));
+  return foundKey ? process.env[foundKey] : undefined;
+};
 
-const KV_REST_API_TOKEN = 
-  process.env.KV_REST_API_TOKEN || 
-  process.env.UPSTASH_REDIS_REST_TOKEN ||
-  process.env.VERCEL_KV_REST_API_TOKEN;
+const getKvToken = () => {
+  if (process.env.KV_REST_API_TOKEN) return process.env.KV_REST_API_TOKEN;
+  if (process.env.UPSTASH_REDIS_REST_TOKEN) return process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (process.env.VERCEL_KV_REST_API_TOKEN) return process.env.VERCEL_KV_REST_API_TOKEN;
+  
+  // Dynamic search for any key ending with REST_API_TOKEN or REDIS_REST_TOKEN
+  const foundKey = Object.keys(process.env).find(k => k.endsWith('REST_API_TOKEN') || k.endsWith('REDIS_REST_TOKEN') || k.endsWith('REST_TOKEN'));
+  return foundKey ? process.env[foundKey] : undefined;
+};
+
+const KV_REST_API_URL = getKvUrl();
+const KV_REST_API_TOKEN = getKvToken();
+
 
 const KEY = 'mph_database_v3';
 const DB_FILE_PATH = path.join(process.cwd(), 'data', 'db.json');

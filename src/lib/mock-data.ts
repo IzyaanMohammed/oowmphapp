@@ -101,3 +101,30 @@ export const MOCK_SESSIONS: Session[] = [
     notes: 'Focus on Python fundamentals.',
   },
 ];
+
+export function getMockEmailForTeacher(teacherName?: string, teacherId?: string): string {
+  if (teacherId) {
+    const userById = MOCK_USERS.find(u => u.id === teacherId);
+    if (userById?.email) return userById.email;
+  }
+  if (teacherName) {
+    const userByName = MOCK_USERS.find(u => u.name.toLowerCase() === teacherName.trim().toLowerCase());
+    if (userByName?.email) return userByName.email;
+
+    const sanitized = teacherName
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, '')
+      .split(/\s+/)
+      .filter(Boolean)
+      .join('.');
+
+    if (sanitized) return `${sanitized}@mph-hall.edu`;
+  }
+  return 'organizer@mph-hall.edu';
+}
+
+export function getSessionContactEmail(session: Session): string {
+  if ((session as any).teacherEmail) return (session as any).teacherEmail;
+  return getMockEmailForTeacher(session.teacherName, session.teacherId);
+}

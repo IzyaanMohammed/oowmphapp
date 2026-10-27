@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -23,13 +23,14 @@ import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import type { Session } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, AlertTriangle, Mail, Copy, Check, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, isSameDay } from "date-fns";
 import { Calendar } from "../ui/calendar";
 import { Textarea } from "../ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from 'uuid';
+import { getSessionContactEmail } from "@/lib/mock-data";
 
 interface SessionFormProps {
   isOpen: boolean;
@@ -38,6 +39,13 @@ interface SessionFormProps {
   selectedDate?: Date;
   sessions: Session[];
   onSave?: (session: Session) => void;
+}
+
+interface ConflictData {
+  existingSession: Session;
+  mockEmail: string;
+  requestedTime: string;
+  requestedDate: Date;
 }
 
 const formSchema = z.object({
@@ -51,6 +59,9 @@ const formSchema = z.object({
 
 export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions, onSave }: SessionFormProps) {
   const { toast } = useToast();
+  const [conflictData, setConflictData] = useState<ConflictData | null>(null);
+  const [showConflictPopup, setShowConflictPopup] = useState(false);
+  const [copiedEmail, setCopiedEmail] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -70,6 +81,10 @@ export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions
         ? new Date(session.date) 
         : (selectedDate ? new Date(selectedDate) : new Date());
       
+      setConflictData(null);
+      setShowConflictPopup(false);
+      setCopiedEmail(false);
+
       form.reset({
         programName: session?.programName || "",
         teacherName: session?.teacherName || "",
@@ -81,9 +96,29 @@ export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions
     }
   }, [isOpen, session, selectedDate, form]);
 
+  const handleCopyEmail = (email: string) => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(email);
+      setCopiedEmail(true);
+      setTimeout(() => setCopiedEmail(false), 2000);
+      toast({
+        title: "Email Copied",
+        description: `${email} has been copied to your clipboard.`,
+      });
+    }
+  };
+
+  const toMinutes = (timeStr: string) => {
+    const parts = timeStr.split(':');
+    if (parts.length < 2) return 0;
+    const h = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    return (isNaN(h) ? 0 : h) * 60 + (isNaN(m) ? 0 : m);
+  };
+
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    const newStart = parseInt(values.startTime.replace(':', ''), 10);
-    const newEnd = parseInt(values.endTime.replace(':', ''), 10);
+    const newStart = toMinutes(values.startTime);
+    const newEnd = toMinutes(values.endTime);
 
     if (newStart >= newEnd) {
       form.setError("endTime", {
@@ -97,17 +132,26 @@ export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions
       isSameDay(new Date(s.date), values.date) && s.id !== session?.id
     );
 
-    const hasOverlap = sessionsOnSameDay.some(existingSession => {
-      const existingStart = parseInt(existingSession.startTime.replace(':', ''), 10);
-      const existingEnd = parseInt(existingSession.endTime.replace(':', ''), 10);
+    const conflictingSession = sessionsOnSameDay.find(existingSession => {
+      const existingStart = toMinutes(existingSession.startTime);
+      const existingEnd = toMinutes(existingSession.endTime);
       return newStart < existingEnd && newEnd > existingStart;
     });
 
-    if (hasOverlap) {
+    if (conflictingSession) {
+      const mockEmail = getSessionContactEmail(conflictingSession);
+      setConflictData({
+        existingSession: conflictingSession,
+        mockEmail,
+        requestedTime: `${values.startTime} - ${values.endTime}`,
+        requestedDate: values.date,
+      });
+      setShowConflictPopup(true);
+
       toast({
         variant: "destructive",
         title: "Booking Conflict",
-        description: "This session overlaps with an existing booking on the same day.",
+        description: `Slot already reserved by ${conflictingSession.teacherName}. Contact details shown.`,
       });
       return;
     }
@@ -129,7 +173,148 @@ export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden border border-zinc-300 dark:border-zinc-800 shadow-none bg-white dark:bg-zinc-900 rounded-none">
+      <DialogContent className="sm:max-w-[490px] p-0 overflow-hidden border border-zinc-300 dark:border-zinc-800 shadow-none bg-white dark:bg-zinc-900 rounded-none relative">
+        {showConflictPopup && conflictData && (
+          <div className="absolute inset-0 z-50 bg-white dark:bg-zinc-900 flex flex-col justify-between overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
+            <div className="bg-zinc-100 dark:bg-zinc-900 px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-none bg-red-600 text-white flex items-center justify-center shrink-0">
+                  <AlertTriangle className="h-4 w-4" />
+                </div>
+                <div>
+                  <DialogTitle className="text-base font-bold tracking-tight text-black dark:text-white">
+                    Time Slot Conflict
+                  </DialogTitle>
+                  <DialogDescription className="text-xs font-medium text-red-600 dark:text-red-400">
+                    Booking cannot be completed for this timing
+                  </DialogDescription>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4 flex-1">
+              <div className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-3.5 space-y-2.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block">
+                  Existing Booking Information
+                </span>
+                <div className="grid grid-cols-2 gap-y-2.5 gap-x-4 text-xs">
+                  <div>
+                    <span className="text-zinc-500 dark:text-zinc-400 text-[11px] block">Program</span>
+                    <span className="font-semibold text-black dark:text-white truncate block">
+                      {conflictData.existingSession.programName}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500 dark:text-zinc-400 text-[11px] block">Booked By</span>
+                    <span className="font-semibold text-black dark:text-white truncate block">
+                      {conflictData.existingSession.teacherName}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500 dark:text-zinc-400 text-[11px] block">Date</span>
+                    <span className="font-semibold text-black dark:text-white block">
+                      {format(new Date(conflictData.existingSession.date), "PPP")}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500 dark:text-zinc-400 text-[11px] block">Reserved Slot</span>
+                    <span className="font-mono font-bold text-red-600 dark:text-red-400 block">
+                      {conflictData.existingSession.startTime} – {conflictData.existingSession.endTime}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs text-zinc-700 dark:text-zinc-300 leading-relaxed">
+                  The Multi-Purpose Hall is already reserved for this duration. If you need to request a timing replacement, swap slots, or coordinate a change, you can contact the person who booked this session:
+                </p>
+
+                <div className="bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 p-3">
+                  <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="h-7 w-7 rounded-none bg-black dark:bg-white text-white dark:text-black flex items-center justify-center shrink-0">
+                        <Mail className="h-3.5 w-3.5" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider block">
+                          Organizer Email
+                        </span>
+                        <span className="text-xs font-mono font-bold text-black dark:text-white truncate block select-all">
+                          {conflictData.mockEmail}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0 w-full sm:w-auto justify-end pt-1 sm:pt-0">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleCopyEmail(conflictData.mockEmail)}
+                        className="h-8 px-2.5 text-xs rounded-none border-zinc-300 hover:bg-white dark:hover:bg-zinc-700"
+                      >
+                        {copiedEmail ? (
+                          <>
+                            <Check className="h-3.5 w-3.5 mr-1 text-green-600" />
+                            <span>Copied</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-3.5 w-3.5 mr-1" />
+                            <span>Copy</span>
+                          </>
+                        )}
+                      </Button>
+                      <a
+                        href={`mailto:${conflictData.mockEmail}?subject=${encodeURIComponent(
+                          `MPH Reservation Request - ${conflictData.existingSession.programName} (${format(
+                            new Date(conflictData.existingSession.date),
+                            "PPP"
+                          )})`
+                        )}&body=${encodeURIComponent(
+                          `Hi ${conflictData.existingSession.teacherName},\n\nI was looking to book the Multi-Purpose Hall on ${format(
+                            new Date(conflictData.existingSession.date),
+                            "PPP"
+                          )} during your reserved timing (${conflictData.existingSession.startTime} - ${
+                            conflictData.existingSession.endTime
+                          }).\n\nWould it be possible to discuss replacing, swapping, or adjusting the schedule?\n\nThank you!`
+                        )}`}
+                        className="inline-flex items-center justify-center h-8 px-3 text-xs font-bold rounded-none bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200 transition-colors"
+                      >
+                        <Mail className="h-3.5 w-3.5 mr-1.5" />
+                        Email
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-zinc-50 dark:bg-zinc-900 px-6 py-3.5 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowConflictPopup(false);
+                  setIsOpen(false);
+                }}
+                className="h-9 px-4 text-xs font-semibold rounded-none border-zinc-300"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={() => setShowConflictPopup(false)}
+                className="h-9 px-5 text-xs font-bold rounded-none bg-black hover:bg-zinc-800 text-white dark:bg-white dark:text-black dark:hover:bg-zinc-200 border border-black"
+              >
+                <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />
+                Adjust Timing
+              </Button>
+            </div>
+          </div>
+        )}
+
         <div className="bg-zinc-100 dark:bg-zinc-900 px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold tracking-tight text-black dark:text-white">
@@ -142,6 +327,27 @@ export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions
         </div>
 
         <div className="p-6">
+          {conflictData && !showConflictPopup && (
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/30 border border-red-300 dark:border-red-900 text-xs">
+              <div className="font-bold text-red-700 dark:text-red-400 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <AlertTriangle className="h-3.5 w-3.5 text-red-600 shrink-0" />
+                  Conflict: {conflictData.existingSession.teacherName} ({conflictData.existingSession.startTime} – {conflictData.existingSession.endTime})
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowConflictPopup(true)}
+                  className="text-[11px] font-bold text-red-700 dark:text-red-300 underline hover:text-black dark:hover:text-white"
+                >
+                  View Contact
+                </button>
+              </div>
+              <p className="text-[11px] text-zinc-600 dark:text-zinc-400 mt-1">
+                Contact <span className="font-mono font-bold text-black dark:text-white">{conflictData.mockEmail}</span> to request a swap or change your booking hours.
+              </p>
+            </div>
+          )}
+
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
