@@ -173,12 +173,12 @@ export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="sm:max-w-[490px] p-0 overflow-hidden border border-zinc-300 dark:border-zinc-800 shadow-none bg-white dark:bg-zinc-900 rounded-none relative">
+      <DialogContent className="fixed left-1/2 top-4 sm:top-10 -translate-x-1/2 translate-y-0 w-[95vw] sm:w-full sm:max-w-[490px] max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-5rem)] flex flex-col p-0 overflow-hidden border border-zinc-300 dark:border-zinc-800 shadow-2xl bg-white dark:bg-zinc-900 rounded-none gap-0 z-50">
         {showConflictPopup && conflictData && (
-          <div className="absolute inset-0 z-50 bg-white dark:bg-zinc-900 flex flex-col justify-between overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
-            <div className="bg-zinc-100 dark:bg-zinc-900 px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+          <div className="absolute inset-0 z-50 bg-white dark:bg-zinc-900 flex flex-col justify-between overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="shrink-0 bg-zinc-100 dark:bg-zinc-900 px-6 py-3.5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-none bg-red-600 text-white flex items-center justify-center shrink-0">
+                <div className="h-8 w-8 rounded-none bg-red-600 text-white flex items-center justify-center shrink-0">
                   <AlertTriangle className="h-4 w-4" />
                 </div>
                 <div>
@@ -192,7 +192,7 @@ export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions
               </div>
             </div>
 
-            <div className="p-6 space-y-4 flex-1">
+            <div className="p-5 sm:p-6 space-y-4 flex-1 overflow-y-auto">
               <div className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-3.5 space-y-2.5">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block">
                   Existing Booking Information
@@ -291,7 +291,7 @@ export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions
               </div>
             </div>
 
-            <div className="bg-zinc-50 dark:bg-zinc-900 px-6 py-3.5 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-end gap-2">
+            <div className="shrink-0 bg-zinc-50 dark:bg-zinc-900 px-6 py-3 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-end gap-2">
               <Button
                 type="button"
                 variant="outline"
@@ -315,9 +315,9 @@ export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions
           </div>
         )}
 
-        <div className="bg-zinc-100 dark:bg-zinc-900 px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
+        <div className="shrink-0 bg-zinc-100 dark:bg-zinc-900 px-6 py-3.5 border-b border-zinc-200 dark:border-zinc-800">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold tracking-tight text-black dark:text-white">
+            <DialogTitle className="text-base sm:text-lg font-bold tracking-tight text-black dark:text-white">
               {session ? "Edit Session" : "New Session"}
             </DialogTitle>
             <DialogDescription className="text-xs font-medium text-zinc-500">
@@ -326,30 +326,30 @@ export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions
           </DialogHeader>
         </div>
 
-        <div className="p-6">
-          {conflictData && !showConflictPopup && (
-            <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/30 border border-red-300 dark:border-red-900 text-xs">
-              <div className="font-bold text-red-700 dark:text-red-400 flex items-center justify-between">
-                <span className="flex items-center gap-1.5">
-                  <AlertTriangle className="h-3.5 w-3.5 text-red-600 shrink-0" />
-                  Conflict: {conflictData.existingSession.teacherName} ({conflictData.existingSession.startTime} – {conflictData.existingSession.endTime})
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setShowConflictPopup(true)}
-                  className="text-[11px] font-bold text-red-700 dark:text-red-300 underline hover:text-black dark:hover:text-white"
-                >
-                  View Contact
-                </button>
-              </div>
-              <p className="text-[11px] text-zinc-600 dark:text-zinc-400 mt-1">
-                Contact <span className="font-mono font-bold text-black dark:text-white">{conflictData.mockEmail}</span> to request a swap or change your booking hours.
-              </p>
-            </div>
-          )}
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4">
+              {conflictData && !showConflictPopup && (
+                <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-300 dark:border-red-900 text-xs">
+                  <div className="font-bold text-red-700 dark:text-red-400 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <AlertTriangle className="h-3.5 w-3.5 text-red-600 shrink-0" />
+                      Conflict: {conflictData.existingSession.teacherName} ({conflictData.existingSession.startTime} – {conflictData.existingSession.endTime})
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowConflictPopup(true)}
+                      className="text-[11px] font-bold text-red-700 dark:text-red-300 underline hover:text-black dark:hover:text-white"
+                    >
+                      View Contact
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-zinc-600 dark:text-zinc-400 mt-1">
+                    Contact <span className="font-mono font-bold text-black dark:text-white">{conflictData.mockEmail}</span> to request a swap or change your booking hours.
+                  </p>
+                </div>
+              )}
 
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -461,16 +461,16 @@ export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions
                   </FormItem>
                 )}
               />
+            </div>
 
-              <div className="flex justify-end gap-2 pt-2">
-                <Button type="button" variant="outline" onClick={() => setIsOpen(false)} className="h-9 px-4 text-xs font-semibold rounded-none border-zinc-300">Cancel</Button>
-                <Button type="submit" className="h-9 px-5 text-xs font-bold rounded-none bg-black hover:bg-zinc-800 text-white border border-black">
-                  {session ? "Update Session" : "Create Session"}
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </div>
+            <div className="shrink-0 bg-zinc-50 dark:bg-zinc-900 px-6 py-3 border-t border-zinc-200 dark:border-zinc-800 flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setIsOpen(false)} className="h-9 px-4 text-xs font-semibold rounded-none border-zinc-300">Cancel</Button>
+              <Button type="submit" className="h-9 px-5 text-xs font-bold rounded-none bg-black hover:bg-zinc-800 text-white border border-black">
+                {session ? "Update Session" : "Create Session"}
+              </Button>
+            </div>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );
