@@ -17,6 +17,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
 import { AnnouncementsTab } from "./announcements-tab";
 import { SessionList } from "./session-list";
 import { SessionCalendar } from "./session-calendar";
+import { AvailabilityWidget } from "./availability-widget";
 import jsPDF from "jspdf";
 import autoTable from 'jspdf-autotable';
 import { saveSession, deleteSession } from "@/app/actions";
@@ -211,12 +212,20 @@ function DashboardContent({ initialSessions }: DashboardClientProps) {
             </div>
 
             <div className="flex flex-col lg:flex-row gap-6 items-start">
-              <div className="w-full lg:w-[320px] shrink-0">
+              <div className="w-full lg:w-[320px] shrink-0 flex flex-col gap-4">
                 <SessionCalendar
                   date={date}
                   setDate={setDate}
                   setSearchQuery={setSearchQuery}
                   sessions={sessions}
+                />
+                <AvailabilityWidget
+                  date={date}
+                  sessions={sessions}
+                  onDaySelect={(d) => {
+                    setDate(d);
+                    setSearchQuery("");
+                  }}
                 />
               </div>
 
