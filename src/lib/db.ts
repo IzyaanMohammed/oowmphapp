@@ -35,9 +35,6 @@ const KV_REST_API_TOKEN = getKvToken();
 const KEY = 'mph_database_v3';
 const DB_FILE_PATH = path.join(process.cwd(), 'data', 'db.json');
 
-// In-memory cache for ultra-fast serverless response
-let serverCache: { data: DbSchema; timestamp: number } | null = null;
-const CACHE_TTL = 2000; // 2 seconds TTL to ensure freshness across requests
 
 function readDiskDb(): DbSchema {
   try {
@@ -99,12 +96,6 @@ async function kvFetch(command: any[]) {
 }
 
 export async function readDb(): Promise<DbSchema> {
-  const now = Date.now();
-  
-  if (serverCache && (now - serverCache.timestamp < CACHE_TTL)) {
-    return serverCache.data;
-  }
-
   // 1. Try reading from KV cloud database if configured
   if (KV_REST_API_URL && KV_REST_API_TOKEN) {
     try {
@@ -116,7 +107,6 @@ export async function readDb(): Promise<DbSchema> {
           bulletins: Array.isArray(parsed?.bulletins) ? parsed.bulletins : [],
           notes: Array.isArray(parsed?.notes) ? parsed.notes : []
         };
-        serverCache = { data: dbData, timestamp: now };
         // Sync local disk copy for backup
         writeDiskDb(dbData);
         return dbData;
@@ -127,26 +117,18 @@ export async function readDb(): Promise<DbSchema> {
           console.log('[KV DB] Seeding initial disk data to Cloud KV...');
           await kvFetch(['SET', KEY, JSON.stringify(diskData)]);
         }
-        serverCache = { data: diskData, timestamp: now };
         return diskData;
       }
     } catch (e) {
       console.error('[KV Read Exception]', e);
     }
-  } else {
-    console.warn('[DB NOTICE] KV cloud database environment variables not detected. Local disk db.json will be used (ephemeral on Vercel redeploys).');
   }
 
   // 2. Fallback to persistent disk file (data/db.json)
-  const diskData = readDiskDb();
-  serverCache = { data: diskData, timestamp: now };
-  return diskData;
+  return readDiskDb();
 }
 
 export async function writeDb(data: DbSchema) {
-  // Update in-memory cache immediately
-  serverCache = { data, timestamp: Date.now() };
-  
   // Write to local disk file for backup
   writeDiskDb(data);
 

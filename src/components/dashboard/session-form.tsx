@@ -128,8 +128,22 @@ export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions
       return;
     }
 
+    const isSameCalendarDay = (d1: Date | string, d2: Date | string) => {
+      try {
+        const date1 = new Date(d1);
+        const date2 = new Date(d2);
+        return (
+          date1.getFullYear() === date2.getFullYear() &&
+          date1.getMonth() === date2.getMonth() &&
+          date1.getDate() === date2.getDate()
+        );
+      } catch {
+        return false;
+      }
+    };
+
     const sessionsOnSameDay = sessions.filter(s => 
-      isSameDay(new Date(s.date), values.date) && s.id !== session?.id
+      isSameCalendarDay(s.date, values.date) && s.id !== session?.id
     );
 
     const conflictingSession = sessionsOnSameDay.find(existingSession => {

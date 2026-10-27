@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback } from "../ui/avatar";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { ScrollArea } from "../ui/scroll-area";
-import { PenTool, Trash2, CalendarDays, Lock, Crown } from "lucide-react";
+import { PenTool, Trash2, CalendarDays } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import { cn } from "@/lib/utils";
 
@@ -39,38 +39,26 @@ export function SessionList({
       <div className="space-y-4">
         {sessions.length > 0 ? (
           sessions.map((session) => {
-            const isOwner = !(session as any).authorId || (session as any).authorId === user?.personalId;
-            const canModify = isAdmin || isOwner;
-
             return (
                 <div
                   key={session.id}
-                  className={cn(
-                    "group flex items-center justify-between border-b last:border-0 p-4 hover:bg-muted/30 transition-colors cursor-pointer",
-                    !canModify && "opacity-75"
-                  )}
+                  className="group flex items-center justify-between border-b last:border-0 p-4 hover:bg-muted/30 transition-colors cursor-pointer"
                   onClick={() => onViewDetails(session)}
                 >
                   <div className="flex items-center gap-4">
                     <Avatar className="h-10 w-10 border shadow-sm">
-                      <AvatarFallback className={cn(
-                          "font-semibold",
-                          isAdmin && !isOwner ? "bg-amber-500/10 text-amber-600" : "bg-primary/5 text-primary"
-                      )}>
+                      <AvatarFallback className="font-semibold bg-primary/5 text-primary">
                         {getInitials(session.teacherName)}
                       </AvatarFallback>
                     </Avatar>
                     <div>
                       <p className="font-semibold text-base group-hover:text-primary transition-colors flex items-center gap-2">
                         {session.programName}
-                        {!isOwner && !isAdmin && <Lock className="h-3 w-3 text-muted-foreground/40" />}
-                        {isAdmin && !isOwner && <Crown className="h-3 w-3 text-amber-500/40" />}
                       </p>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <span className="font-medium text-foreground/80">{session.teacherName}</span>
                         <span>•</span>
                         <span>{searchQuery ? format(session.date, "PPP") : "Today"}</span>
-                        {isOwner && <Badge variant="outline" className="text-[9px] h-4 bg-primary/5 text-primary border-primary/20">Yours</Badge>}
                       </div>
                     </div>
                   </div>
@@ -83,13 +71,10 @@ export function SessionList({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className={cn(
-                            "h-8 w-8 transition-all",
-                            canModify ? "opacity-0 group-hover:opacity-100" : "opacity-20 cursor-not-allowed"
-                        )}
+                        className="h-8 w-8 transition-all opacity-0 group-hover:opacity-100 hover:bg-zinc-100 dark:hover:bg-zinc-800"
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (canModify) onEdit(session);
+                          onEdit(session);
                         }}
                       >
                         <PenTool className="h-3.5 w-3.5" />
@@ -97,13 +82,10 @@ export function SessionList({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className={cn(
-                            "h-8 w-8 transition-all hover:text-destructive",
-                            canModify ? "opacity-0 group-hover:opacity-100" : "opacity-20 cursor-not-allowed"
-                        )}
+                        className="h-8 w-8 transition-all hover:text-destructive opacity-0 group-hover:opacity-100 hover:bg-zinc-100 dark:hover:bg-zinc-800"
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (canModify) onDelete(session.id);
+                          onDelete(session.id);
                         }}
                       >
                         <Trash2 className="h-3.5 w-3.5" />

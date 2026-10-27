@@ -105,9 +105,8 @@ function DashboardContent({ initialSessions }: DashboardClientProps) {
   };
 
   const onSaveSession = async (sessionData: Session) => {
-    const sessionWithAuthor = {
+    const sessionToSave = {
       ...sessionData,
-      authorId: (sessionData as any).authorId || user?.personalId,
       date: sessionData.date.toISOString(),
     };
 
@@ -115,13 +114,13 @@ function DashboardContent({ initialSessions }: DashboardClientProps) {
       const index = prev.findIndex(s => s.id === sessionData.id);
       if (index > -1) {
         const updated = [...prev];
-        updated[index] = { ...sessionData, authorId: (sessionData as any).authorId || user?.personalId } as any;
+        updated[index] = { ...sessionData };
         return updated;
       }
-      return [{ ...sessionData, authorId: user?.personalId } as any, ...prev];
+      return [{ ...sessionData }, ...prev];
     });
 
-    const saved = await saveSession(sessionWithAuthor);
+    const saved = await saveSession(sessionToSave);
     if (saved && saved.id) {
       setSessions(prev => prev.map(s => s.id === sessionData.id ? { ...saved, date: new Date(saved.date) } as any : s));
     }
@@ -258,12 +257,17 @@ function DashboardContent({ initialSessions }: DashboardClientProps) {
 
         <SessionForm 
           isOpen={isFormOpen} 
-          setIsOpen={setIsFormOpen}
+          setIsOpen={(open) => {
+            setIsFormOpen(open);
+            if (!open) {
+              setSelectedSession(null);
+            }
+          }}
           session={selectedSession}
           selectedDate={date}
           sessions={sessions}
           onSave={onSaveSession}
-          key={selectedSession?.id || (date ? date.toISOString() : 'new')}
+          key={selectedSession?.id ? `edit-${selectedSession.id}` : `new-${date ? date.toISOString() : 'default'}`}
         />
 
         {viewedSession && (

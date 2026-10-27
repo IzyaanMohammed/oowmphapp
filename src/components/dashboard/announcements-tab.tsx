@@ -60,11 +60,6 @@ export const AnnouncementsTab = memo(function AnnouncementsTab() {
   };
 
   const openEdit = (a: Announcement) => {
-    const canEdit = isAdmin || !(a as any).authorId || (a as any).authorId === user?.personalId;
-    if (!canEdit) {
-      alert("Only administrators or the original author can edit this bulletin.");
-      return;
-    }
     setFormState({ id: a.id, title: a.title, message: a.message, authorName: a.authorName });
     setIsDialogOpen(true);
   };
@@ -74,7 +69,6 @@ export const AnnouncementsTab = memo(function AnnouncementsTab() {
     if (!title.trim() || !message.trim()) return;
 
     const originalBulletin = announcements.find(a => a.id === id);
-    const authorIdToSave = originalBulletin ? (originalBulletin as any).authorId : user?.personalId;
     const tempId = id || `local-${Date.now()}`;
 
     const optimisticBulletin: Announcement = {
@@ -90,16 +84,16 @@ export const AnnouncementsTab = memo(function AnnouncementsTab() {
       const index = prev.findIndex(a => a.id === tempId);
       if (index > -1) {
         const updated = [...prev];
-        updated[index] = { ...optimisticBulletin, authorId: authorIdToSave } as any;
+        updated[index] = { ...optimisticBulletin };
         return updated;
       }
-      return [{ ...optimisticBulletin, authorId: user?.personalId } as any, ...prev];
+      return [{ ...optimisticBulletin }, ...prev];
     });
 
     setIsDialogOpen(false);
 
     // Persist to server
-    const saved = await saveBulletin({ ...optimisticBulletin, authorId: authorIdToSave || user?.personalId });
+    const saved = await saveBulletin({ ...optimisticBulletin });
     if (saved && saved.id) {
       setAnnouncements(prev => prev.map(a => a.id === tempId ? {
         ...saved,
@@ -109,11 +103,6 @@ export const AnnouncementsTab = memo(function AnnouncementsTab() {
   };
 
   const confirmDelete = (ann: Announcement) => {
-    const canDelete = isAdmin || !(ann as any).authorId || (ann as any).authorId === user?.personalId;
-    if (!canDelete) {
-      alert("Only administrators or the original author can delete this bulletin.");
-      return;
-    }
     setPendingDeleteId(ann.id);
   };
 
