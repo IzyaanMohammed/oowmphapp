@@ -25,11 +25,16 @@ import { AppHeader } from "../layout/app-header";
 import { useAuth } from "@/context/auth-context";
 import { useSearchParams } from "next/navigation";
 
+import type { Booker } from "@/lib/mock-data";
+
 interface DashboardClientProps {
   initialSessions: Session[];
+  extraBookers?: Booker[];
 }
 
-function DashboardContent({ initialSessions }: DashboardClientProps) {
+
+function DashboardContent({ initialSessions, extraBookers = [] }: DashboardClientProps) {
+
   const { user, role } = useAuth();
   const searchParams = useSearchParams();
 
@@ -276,8 +281,10 @@ function DashboardContent({ initialSessions }: DashboardClientProps) {
           selectedDate={date}
           sessions={sessions}
           onSave={onSaveSession}
+          extraBookers={extraBookers}
           key={selectedSession?.id ? `edit-${selectedSession.id}` : `new-${date ? date.toISOString() : 'default'}`}
         />
+
 
         {viewedSession && (
           <SessionDetailsDialog

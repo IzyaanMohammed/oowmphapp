@@ -5,7 +5,9 @@ export interface DbSchema {
   sessions: any[];
   bulletins: any[];
   notes: any[];
+  bookers: any[];
 }
+
 
 // Support Vercel KV / Upstash REST API credentials under standard or custom environment variable names
 const getKvUrl = () => {
@@ -41,13 +43,15 @@ function readDiskDb(): DbSchema {
         sessions: Array.isArray(parsed?.sessions) ? parsed.sessions : [],
         bulletins: Array.isArray(parsed?.bulletins) ? parsed.bulletins : [],
         notes: Array.isArray(parsed?.notes) ? parsed.notes : [],
+        bookers: Array.isArray(parsed?.bookers) ? parsed.bookers : [],
       };
     }
   } catch (err) {
     console.error('[DB Disk Read Error]', err);
   }
-  return { sessions: [], bulletins: [], notes: [] };
+  return { sessions: [], bulletins: [], notes: [], bookers: [] };
 }
+
 
 function writeDiskDb(data: DbSchema) {
   try {
@@ -101,7 +105,8 @@ export async function readDb(): Promise<DbSchema> {
         const dbData: DbSchema = {
           sessions: Array.isArray(parsed?.sessions) ? parsed.sessions : [],
           bulletins: Array.isArray(parsed?.bulletins) ? parsed.bulletins : [],
-          notes: Array.isArray(parsed?.notes) ? parsed.notes : []
+          notes: Array.isArray(parsed?.notes) ? parsed.notes : [],
+          bookers: Array.isArray(parsed?.bookers) ? parsed.bookers : [],
         };
         // Sync local disk copy for backup
         writeDiskDb(dbData);

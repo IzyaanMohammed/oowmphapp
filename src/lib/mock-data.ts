@@ -41,6 +41,55 @@ export const MOCK_USERS: User[] = [
   },
 ];
 
+/** Predefined OOW bookers with their real email addresses */
+export interface Booker {
+  name: string;
+  email: string;
+}
+
+export const DEFAULT_BOOKERS: Booker[] = [
+  { name: 'Zenu Mathew',             email: 'zenu.m_oow@gemsedu.com' },
+  { name: 'Vinita Mathews',          email: 'vinita.m_oow@gemsedu.com' },
+  { name: 'Udaya Balakrishna',       email: 'udaya.b_oow@gemsedu.com' },
+  { name: 'Shipra Gupta',            email: 'shipra.g_oow@gemsedu.com' },
+  { name: 'Sheeba Vasanthakumari',   email: 'SHEEBA.V_oow@gemsedu.com' },
+  { name: 'Saranya S.',              email: 'saranya.s_oow@gemsedu.com' },
+  { name: 'Sangeetha Regunath',      email: 'sangeetha.r_oow@gemsedu.com' },
+  { name: 'Robin Methai',            email: 'robin.m2_oow@gemsedu.com' },
+  { name: 'Priya Shivakumar',        email: 'priya.s3_oow@gemsedu.com' },
+  { name: 'Malti Iyer',              email: 'malti.i_oow@gemsedu.com' },
+  { name: 'Mahmadul Haque',          email: 'mahmudul.h_oow@gemsedu.com' },
+  { name: 'Lavina Chauhan',          email: 'lavina.c_oow@gemsedu.com' },
+  { name: 'Herman Gomes',            email: 'herman.g_oow@gemsedu.com' },
+  { name: 'Farha A.',                email: 'FARHA.A_oow@gemsedu.com' },
+  { name: 'Betty Antony',            email: 'BETTY.A_oow@gemsedu.com' },
+  { name: 'Anjuli Murthy',           email: 'anjuli.m1_oow@gemsedu.com' },
+  { name: 'Anitha Nair',             email: 'ANITHA.N_oow@gemsedu.com' },
+  { name: 'Aarti Kanal',             email: 'aarti.k_oow@gemsedu.com' },
+];
+
+/**
+ * Look up a booker's real email by their name.
+ * Falls back to a generated email if the name isn't in the predefined list.
+ */
+export function getEmailForBookerName(name: string): string {
+  const match = DEFAULT_BOOKERS.find(
+    b => b.name.toLowerCase() === name.trim().toLowerCase()
+  );
+  if (match) return match.email;
+
+  // Fallback: generate a plausible email
+  const sanitized = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .split(/\s+/)
+    .filter(Boolean)
+    .join('.');
+  if (sanitized) return `${sanitized}_oow@gemsedu.com`;
+  return 'organizer_oow@gemsedu.com';
+}
+
 export const MOCK_SESSIONS: Session[] = [
   {
     id: 'session-1',
@@ -108,6 +157,10 @@ export function getMockEmailForTeacher(teacherName?: string, teacherId?: string)
     if (userById?.email) return userById.email;
   }
   if (teacherName) {
+    // Try the predefined OOW bookers first
+    const bookerEmail = getEmailForBookerName(teacherName);
+    if (bookerEmail) return bookerEmail;
+
     const userByName = MOCK_USERS.find(u => u.name.toLowerCase() === teacherName.trim().toLowerCase());
     if (userByName?.email) return userByName.email;
 
@@ -119,12 +172,15 @@ export function getMockEmailForTeacher(teacherName?: string, teacherId?: string)
       .filter(Boolean)
       .join('.');
 
-    if (sanitized) return `${sanitized}@mph-hall.edu`;
+    if (sanitized) return `${sanitized}_oow@gemsedu.com`;
   }
-  return 'organizer@mph-hall.edu';
+  return 'organizer_oow@gemsedu.com';
 }
 
 export function getSessionContactEmail(session: Session): string {
   if ((session as any).teacherEmail) return (session as any).teacherEmail;
+  // Try predefined bookers list first
+  const bookerEmail = getEmailForBookerName(session.teacherName);
+  if (bookerEmail) return bookerEmail;
   return getMockEmailForTeacher(session.teacherName, session.teacherId);
 }

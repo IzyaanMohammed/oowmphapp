@@ -25,12 +25,19 @@ import type { Session } from "@/lib/types";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { CalendarIcon, AlertTriangle, Mail, Copy, Check, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format, isSameDay } from "date-fns";
+import { format } from "date-fns";
 import { Calendar } from "../ui/calendar";
 import { Textarea } from "../ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from 'uuid';
-import { getSessionContactEmail } from "@/lib/mock-data";
+import { getSessionContactEmail, DEFAULT_BOOKERS, type Booker } from "@/lib/mock-data";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 
 interface SessionFormProps {
   isOpen: boolean;
@@ -39,6 +46,8 @@ interface SessionFormProps {
   selectedDate?: Date;
   sessions: Session[];
   onSave?: (session: Session) => void;
+  /** Extra bookers added via the admin panel (merged with the default list) */
+  extraBookers?: Booker[];
 }
 
 interface ConflictData {
@@ -50,25 +59,41 @@ interface ConflictData {
 
 const formSchema = z.object({
   programName: z.string().min(2, "Program name is too short"),
-  teacherName: z.string().min(2, "Teacher name is too short"),
+  teacherName: z.string().min(1, "Please select a name"),
   date: z.date({ required_error: "A date is required." }),
   startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format (HH:MM)"),
   endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format (HH:MM)"),
   notes: z.string().optional(),
 });
 
-export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions, onSave }: SessionFormProps) {
+export function SessionForm({
+  isOpen,
+  setIsOpen,
+  session,
+  selectedDate,
+  sessions,
+  onSave,
+  extraBookers = [],
+}: SessionFormProps) {
   const { toast } = useToast();
   const [conflictData, setConflictData] = useState<ConflictData | null>(null);
   const [showConflictPopup, setShowConflictPopup] = useState(false);
   const [copiedEmail, setCopiedEmail] = useState(false);
+
+  // Merge default bookers with any extra ones from the admin panel (deduplicate by name)
+  const allBookers: Booker[] = [
+    ...DEFAULT_BOOKERS,
+    ...extraBookers.filter(
+      (eb) => !DEFAULT_BOOKERS.some((db) => db.name.toLowerCase() === eb.name.toLowerCase())
+    ),
+  ].sort((a, b) => a.name.localeCompare(b.name));
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       programName: session?.programName || "",
       teacherName: session?.teacherName || "",
-      date: session?.date ? new Date(session.date) : (selectedDate ? new Date(selectedDate) : new Date()),
+      date: session?.date ? new Date(session.date) : selectedDate ? new Date(selectedDate) : new Date(),
       startTime: session?.startTime || "",
       endTime: session?.endTime || "",
       notes: session?.notes || "",
@@ -77,10 +102,12 @@ export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions
 
   useEffect(() => {
     if (isOpen) {
-      const targetDate = session?.date 
-        ? new Date(session.date) 
-        : (selectedDate ? new Date(selectedDate) : new Date());
-      
+      const targetDate = session?.date
+        ? new Date(session.date)
+        : selectedDate
+        ? new Date(selectedDate)
+        : new Date();
+
       setConflictData(null);
       setShowConflictPopup(false);
       setCopiedEmail(false);
@@ -97,7 +124,7 @@ export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions
   }, [isOpen, session, selectedDate, form]);
 
   const handleCopyEmail = (email: string) => {
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
       navigator.clipboard.writeText(email);
       setCopiedEmail(true);
       setTimeout(() => setCopiedEmail(false), 2000);
@@ -109,7 +136,7 @@ export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions
   };
 
   const toMinutes = (timeStr: string) => {
-    const parts = timeStr.split(':');
+    const parts = timeStr.split(":");
     if (parts.length < 2) return 0;
     const h = parseInt(parts[0], 10);
     const m = parseInt(parts[1], 10);
@@ -142,18 +169,23 @@ export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions
       }
     };
 
-    const sessionsOnSameDay = sessions.filter(s => 
-      isSameCalendarDay(s.date, values.date) && s.id !== session?.id
+    const sessionsOnSameDay = sessions.filter(
+      (s) => isSameCalendarDay(s.date, values.date) && s.id !== session?.id
     );
 
-    const conflictingSession = sessionsOnSameDay.find(existingSession => {
+    const conflictingSession = sessionsOnSameDay.find((existingSession) => {
       const existingStart = toMinutes(existingSession.startTime);
       const existingEnd = toMinutes(existingSession.endTime);
       return newStart < existingEnd && newEnd > existingStart;
     });
 
     if (conflictingSession) {
-      const mockEmail = getSessionContactEmail(conflictingSession);
+      // Resolve real email: check allBookers list first, then fall back
+      const bookerMatch = allBookers.find(
+        (b) => b.name.toLowerCase() === conflictingSession.teacherName.trim().toLowerCase()
+      );
+      const mockEmail = bookerMatch?.email ?? getSessionContactEmail(conflictingSession);
+
       setConflictData({
         existingSession: conflictingSession,
         mockEmail,
@@ -188,6 +220,7 @@ export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent className="fixed left-1/2 top-4 sm:top-10 -translate-x-1/2 translate-y-0 w-[95vw] sm:w-full sm:max-w-[490px] max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-5rem)] flex flex-col p-0 overflow-hidden border border-zinc-300 dark:border-zinc-800 shadow-2xl bg-white dark:bg-zinc-900 rounded-none gap-0 z-50">
+        {/* ── Conflict overlay ── */}
         {showConflictPopup && conflictData && (
           <div className="absolute inset-0 z-50 bg-white dark:bg-zinc-900 flex flex-col justify-between overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             <div className="shrink-0 bg-zinc-100 dark:bg-zinc-900 px-6 py-3.5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
@@ -241,7 +274,9 @@ export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions
 
               <div className="space-y-2">
                 <p className="text-xs text-zinc-700 dark:text-zinc-300 leading-relaxed">
-                  The Multi-Purpose Hall is already reserved for this duration. If you need to request a timing replacement, swap slots, or coordinate a change, you can contact the person who booked this session:
+                  The Multi-Purpose Hall is already reserved for this duration. If you need to request a
+                  timing replacement, swap slots, or coordinate a change, you can contact the person who
+                  booked this session:
                 </p>
 
                 <div className="bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 p-3">
@@ -329,6 +364,7 @@ export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions
           </div>
         )}
 
+        {/* ── Header ── */}
         <div className="shrink-0 bg-zinc-100 dark:bg-zinc-900 px-6 py-3.5 border-b border-zinc-200 dark:border-zinc-800">
           <DialogHeader>
             <DialogTitle className="text-base sm:text-lg font-bold tracking-tight text-black dark:text-white">
@@ -340,15 +376,18 @@ export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions
           </DialogHeader>
         </div>
 
+        {/* ── Form ── */}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
             <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4">
+              {/* Inline conflict banner (when user returns to form without closing) */}
               {conflictData && !showConflictPopup && (
                 <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-300 dark:border-red-900 text-xs">
                   <div className="font-bold text-red-700 dark:text-red-400 flex items-center justify-between">
                     <span className="flex items-center gap-1.5">
                       <AlertTriangle className="h-3.5 w-3.5 text-red-600 shrink-0" />
-                      Conflict: {conflictData.existingSession.teacherName} ({conflictData.existingSession.startTime} – {conflictData.existingSession.endTime})
+                      Conflict: {conflictData.existingSession.teacherName} (
+                      {conflictData.existingSession.startTime} – {conflictData.existingSession.endTime})
                     </span>
                     <button
                       type="button"
@@ -359,46 +398,75 @@ export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions
                     </button>
                   </div>
                   <p className="text-[11px] text-zinc-600 dark:text-zinc-400 mt-1">
-                    Contact <span className="font-mono font-bold text-black dark:text-white">{conflictData.mockEmail}</span> to request a swap or change your booking hours.
+                    Contact{" "}
+                    <span className="font-mono font-bold text-black dark:text-white">
+                      {conflictData.mockEmail}
+                    </span>{" "}
+                    to request a swap or change your booking hours.
                   </p>
                 </div>
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Program Name */}
                 <FormField
                   control={form.control}
                   name="programName"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
-                      <FormLabel className="text-xs font-bold uppercase tracking-wider text-black dark:text-zinc-300">Program Name</FormLabel>
+                      <FormLabel className="text-xs font-bold uppercase tracking-wider text-black dark:text-zinc-300">
+                        Program Name
+                      </FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g. Mathematics 101" className="h-9 px-3 text-xs rounded-none bg-white dark:bg-black border-zinc-300 focus:border-black" {...field} />
+                        <Input
+                          placeholder="e.g. Mathematics 101"
+                          className="h-9 px-3 text-xs rounded-none bg-white dark:bg-black border-zinc-300 focus:border-black"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+
+                {/* Booked By — dropdown */}
                 <FormField
                   control={form.control}
                   name="teacherName"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
-                      <FormLabel className="text-xs font-bold uppercase tracking-wider text-black dark:text-zinc-300">Teacher Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter name" className="h-9 px-3 text-xs rounded-none bg-white dark:bg-black border-zinc-300 focus:border-black" {...field} />
-                      </FormControl>
+                      <FormLabel className="text-xs font-bold uppercase tracking-wider text-black dark:text-zinc-300">
+                        Booked By
+                      </FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="h-9 px-3 text-xs rounded-none bg-white dark:bg-black border-zinc-300 focus:border-black focus:ring-0 focus:ring-offset-0">
+                            <SelectValue placeholder="Select your name" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="rounded-none max-h-60">
+                          {allBookers.map((booker) => (
+                            <SelectItem key={booker.name} value={booker.name} className="text-xs">
+                              {booker.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
 
+              {/* Date picker */}
               <FormField
                 control={form.control}
                 name="date"
                 render={({ field }) => (
                   <FormItem className="flex flex-col space-y-1">
-                    <FormLabel className="text-xs font-bold uppercase tracking-wider text-black dark:text-zinc-300">Date</FormLabel>
+                    <FormLabel className="text-xs font-bold uppercase tracking-wider text-black dark:text-zinc-300">
+                      Date
+                    </FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
@@ -409,16 +477,15 @@ export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions
                               !field.value && "text-zinc-400"
                             )}
                           >
-                            {field.value ? (
-                              format(field.value, "PPP")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
+                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
                             <CalendarIcon className="ml-auto h-3.5 w-3.5 text-black" />
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0 rounded-none overflow-hidden shadow-none border-zinc-300" align="start">
+                      <PopoverContent
+                        className="w-auto p-0 rounded-none overflow-hidden shadow-none border-zinc-300"
+                        align="start"
+                      >
                         <Calendar
                           mode="single"
                           selected={field.value}
@@ -433,15 +500,22 @@ export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions
                 )}
               />
 
+              {/* Time range */}
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="startTime"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
-                      <FormLabel className="text-xs font-bold uppercase tracking-wider text-black dark:text-zinc-300">Start Time</FormLabel>
+                      <FormLabel className="text-xs font-bold uppercase tracking-wider text-black dark:text-zinc-300">
+                        Start Time
+                      </FormLabel>
                       <FormControl>
-                        <Input type="time" className="h-9 px-3 text-xs rounded-none bg-white dark:bg-black border-zinc-300 focus:border-black" {...field} />
+                        <Input
+                          type="time"
+                          className="h-9 px-3 text-xs rounded-none bg-white dark:bg-black border-zinc-300 focus:border-black"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -452,9 +526,15 @@ export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions
                   name="endTime"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
-                      <FormLabel className="text-xs font-bold uppercase tracking-wider text-black dark:text-zinc-300">End Time</FormLabel>
+                      <FormLabel className="text-xs font-bold uppercase tracking-wider text-black dark:text-zinc-300">
+                        End Time
+                      </FormLabel>
                       <FormControl>
-                        <Input type="time" className="h-9 px-3 text-xs rounded-none bg-white dark:bg-black border-zinc-300 focus:border-black" {...field} />
+                        <Input
+                          type="time"
+                          className="h-9 px-3 text-xs rounded-none bg-white dark:bg-black border-zinc-300 focus:border-black"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -462,14 +542,21 @@ export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions
                 />
               </div>
 
+              {/* Notes */}
               <FormField
                 control={form.control}
                 name="notes"
                 render={({ field }) => (
                   <FormItem className="space-y-1">
-                    <FormLabel className="text-xs font-bold uppercase tracking-wider text-black dark:text-zinc-300">Notes</FormLabel>
+                    <FormLabel className="text-xs font-bold uppercase tracking-wider text-black dark:text-zinc-300">
+                      Notes
+                    </FormLabel>
                     <FormControl>
-                      <Textarea placeholder="Session objectives..." className="p-3 text-xs rounded-none bg-white dark:bg-black border-zinc-300 focus:border-black min-h-[70px] resize-none" {...field} />
+                      <Textarea
+                        placeholder="Session objectives..."
+                        className="p-3 text-xs rounded-none bg-white dark:bg-black border-zinc-300 focus:border-black min-h-[70px] resize-none"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -477,9 +564,20 @@ export function SessionForm({ isOpen, setIsOpen, session, selectedDate, sessions
               />
             </div>
 
+            {/* Footer actions */}
             <div className="shrink-0 bg-zinc-50 dark:bg-zinc-900 px-6 py-3 border-t border-zinc-200 dark:border-zinc-800 flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setIsOpen(false)} className="h-9 px-4 text-xs font-semibold rounded-none border-zinc-300">Cancel</Button>
-              <Button type="submit" className="h-9 px-5 text-xs font-bold rounded-none bg-black hover:bg-zinc-800 text-white border border-black">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsOpen(false)}
+                className="h-9 px-4 text-xs font-semibold rounded-none border-zinc-300"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="h-9 px-5 text-xs font-bold rounded-none bg-black hover:bg-zinc-800 text-white border border-black"
+              >
                 {session ? "Update Session" : "Create Session"}
               </Button>
             </div>

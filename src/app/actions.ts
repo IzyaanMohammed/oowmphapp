@@ -120,3 +120,42 @@ export async function clearDatabase() {
   await writeDb(db);
   revalidatePath('/dashboard');
 }
+
+// ── Booker management (admin panel) ─────────────────────────────────────────
+
+export async function getBookers() {
+  const db = await readDb();
+  return db.bookers ?? [];
+}
+
+export async function saveBooker(booker: { id?: string; name: string; email: string }) {
+  const db = await readDb();
+  if (!db.bookers) db.bookers = [];
+
+  const isTempId = !booker.id || String(booker.id).startsWith('local-');
+  const targetId = isTempId ? uuidv4() : booker.id!;
+
+  const index = db.bookers.findIndex((b: any) => b.id === booker.id || (isTempId && b.id === targetId));
+
+  const bookerToSave = { ...booker, id: targetId };
+
+  if (index > -1) {
+    db.bookers[index] = bookerToSave;
+  } else {
+    db.bookers.push(bookerToSave);
+  }
+
+  await writeDb(db);
+  revalidatePath('/admin');
+  revalidatePath('/dashboard');
+  return bookerToSave;
+}
+
+export async function deleteBooker(id: string) {
+  const db = await readDb();
+  if (!db.bookers) db.bookers = [];
+  db.bookers = db.bookers.filter((b: any) => b.id !== id);
+  await writeDb(db);
+  revalidatePath('/admin');
+  revalidatePath('/dashboard');
+}
